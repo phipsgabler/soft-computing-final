@@ -12,7 +12,6 @@
 	number = {2},
 	journaltitle = {Evolutionary computation},
 	author = {Montana, David J.},
-	urldate = {2017-04-09},
 	date = {1995}
 }
 
