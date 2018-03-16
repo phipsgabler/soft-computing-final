@@ -15,8 +15,13 @@ struct Branch{N}
     iffalse::DecisionTree{N}
 end
 
+function unicode_subscript(i)
+    @assert 0 ≤ i ≤ 9
+    '\u2080' + i
+end
+
 function Base.show(io::IO, v::Variable, indent = 0)
-    print(io, "{", v.n, "}")
+    print(io, "x", unicode_subscript(v.n))
 end
 
 function Base.show(io::IO, b::Branch, indent = 0)
