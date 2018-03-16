@@ -1,5 +1,19 @@
 # Selected Topics in Soft Computing: Final Project
 
+## Data
+
+The `data` folder contains the following three data sets from the UCI Machine Learning Repository:
+
+- [Glass identification](https://archive.ics.uci.edu/ml/datasets/glass+identification)
+- [Ionosphere](https://archive.ics.uci.edu/ml/datasets/ionosphere)
+- [Image segmentation](https://archive.ics.uci.edu/ml/datasets/image+segmentation)
+
+(The Pima indians diabetes data set apperantly has been removed due to license restrictions.)
+
+Asuncion, A & Newman, D.J. (2007). [UCI Machine Learning
+Repository](http://www.ics.uci.edu/~mlearn/MLRepository.html]. Irvine, CA: University of California,
+Department of Information and Computer Science.
+
 ## References
 
 ```
@@ -25,4 +39,12 @@
 	author = {Bot, Martijn {CJ} and Langdon, William B.},
 	date = {2000}
 }
+
+@misc{dua_2017,
+    author = {Dheeru, Dua and Karra Taniskidou, Efi},
+    year = {2017},
+    title = {{UCI} Machine Learning Repository},
+    url = {http://archive.ics.uci.edu/ml},
+    institution = {University of California, Irvine, School of Information and Computer Sciences} 
+} 
 ```
