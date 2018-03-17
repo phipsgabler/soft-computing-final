@@ -36,6 +36,12 @@ function Base.show(io::IO, b::Branch, indent = 0)
     show(io, b.iffalse, indent + 2)
 end
 
+treedepth(::Variable) = 1
+treedepth(b::Branch) = 1 + max(treedepth(b.iftrue), max(treedepth(b.iffalse)))
+
+treesize(::Variable) = 1
+treesize(b::Branch) = 1 + treesize(b.iftrue) + treesize(b.iffalse)
+
 function decide{N}(value::StaticVector{N, Float64}, v::Variable{N})
     return v
 end

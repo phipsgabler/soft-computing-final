@@ -15,5 +15,10 @@ using Base.Test
 
     @test normalize_conditions(t.conditions) == [0.1, 3.0]
     @test string(t) == printed
+
+    @test treedepth(Variable{10}(1)) == 1
+    @test treedepth(t) == 2
+    @test treesize(Variable{10}(1)) == 1
+    @test treesize(t) == 3
 end
 
