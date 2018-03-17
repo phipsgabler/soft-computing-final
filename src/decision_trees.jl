@@ -1,5 +1,5 @@
 using StaticArrays
-import Base: show, promote_rule
+import Base: show
 
 abstract type DecisionTree{N} end
 
@@ -13,6 +13,9 @@ struct Branch{N}
     threshold::Float64
     iftrue::DecisionTree{N}
     iffalse::DecisionTree{N}
+    
+    Branch{N}(c, t, ift::DecisionTree{N}, iff::DecisionTree{N}) where N = new{N}(c, t, ift, iff)
+    Branch(c, t, ift::DecisionTree{N}, iff::DecisionTree{N}) where N = new{N}(c, t, ift, iff)
 end
 
 function unicode_subscript(i)
@@ -25,10 +28,13 @@ function Base.show(io::IO, v::Variable, indent = 0)
 end
 
 function Base.show(io::IO, b::Branch, indent = 0)
-    sorted_conditions = sort(collect(b.conditions), by = c -> c.first.n)
-    
     print(io, " " ^ indent, "if ")
-    join(io, ("$f × $v" for (v, f) in sorted_conditions), " + ")
+    if !isempty(b.conditions)
+        sorted_conditions = sort(collect(b.conditions), by = c -> c.first.n)
+        join(io, ("$f × $v" for (v, f) in sorted_conditions), " + ")
+    else
+        print(io, "0.0")
+    end
     print(io, " ≤ ", b.threshold, "\n")
     print(io, " " ^ (indent + 2), "then ")
     show(io, b.iftrue, indent + 2)
@@ -53,6 +59,7 @@ function decide{N}(value::StaticVector{N, Float64}, b::Branch{N})
         return decide(value, b.iffalse)
     end
 end
+
 
 δ{T}(i, j, ::Type{T} = Float64) = ifelse(i == j, one(T), zero(T)) 
 
