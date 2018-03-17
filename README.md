@@ -10,9 +10,8 @@ The `data` folder contains the following three data sets from the UCI Machine Le
 
 (The Pima indians diabetes data set apperantly has been removed due to license restrictions.)
 
-Asuncion, A & Newman, D.J. (2007). [UCI Machine Learning
-Repository](http://www.ics.uci.edu/~mlearn/MLRepository.html]. Irvine, CA: University of California,
-Department of Information and Computer Science.
+These datasets were retrieved through Jack Dunn's
+[`uci-data`](https://github.com/JackDunnNZ/uci-data) script.
 
 ## References
 
