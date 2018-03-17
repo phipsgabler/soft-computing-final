@@ -1,3 +1,5 @@
+include("../src/SoftComputingFinal.jl")
+
 using SoftComputingFinal
 using Base.Test
 
