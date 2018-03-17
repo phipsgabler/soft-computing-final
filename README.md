@@ -6,7 +6,8 @@ The `data` folder contains the following three data sets from the UCI Machine Le
 
 - [Glass identification](https://archive.ics.uci.edu/ml/datasets/glass+identification)
 - [Ionosphere](https://archive.ics.uci.edu/ml/datasets/ionosphere)
-- [Image segmentation](https://archive.ics.uci.edu/ml/datasets/image+segmentation)
+- [Image segmentation](https://archive.ics.uci.edu/ml/datasets/image+segmentation) (Only the training
+  set was used.)
 
 (The Pima indians diabetes data set apperantly has been removed due to license restrictions.)
 
