@@ -61,11 +61,21 @@ function decide{N}(value::StaticVector{N, Float64}, b::Branch{N})
 end
 
 
-δ{T}(i, j, ::Type{T} = Float64) = ifelse(i == j, one(T), zero(T)) 
+δ{T}(i, j, ::Type{T} = Float64) = ifelse(i == j, one(T), zero(T))
+
+function basisvector_impl(n, i)
+    ee = [δ(i, j) for j in 1:n]
+    Expr(:call, :SVector, ee...)
+end
+
+macro basisvector(n, i)
+    @assert n isa Integer
+    @assert i isa Integer
+    basisvector_impl(n, i)
+end
 
 @generated function basisvector{N, I}(::Type{Val{N}}, ::Type{Val{I}})
-    ee = [δ(I, j) for j in 1:N]
-    Expr(:call, :SVector, ee...)
+    basisvector_impl(N, I)
 end
 
 onehot{N}(v::Variable{N}) = basisvector(Val{N}, Val{v.n})
@@ -74,6 +84,3 @@ function normalize_conditions{N}(conditions::Dict{Variable{N}, Float64})
     z = @SVector zeros(N)
     reduce((v, cond) -> v + onehot(cond[1]) * cond[2], z, conditions)
 end
-
-
-
