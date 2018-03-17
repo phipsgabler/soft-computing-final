@@ -34,3 +34,10 @@ conversions = map(=>, string.(1:7),
                    "tableware",
                    "headlamps"])
 recode!(glass[:Type], conversions...)
+
+# Ionosphere
+# First 34 are continuous values
+# The 35th attribute is either "good" or "bad" evidence 
+ionosphere = CSV.read("../data/ionosphere.data",
+                     header = [:Id, [Symbol("X", i) for i = 1:34]..., :Evidence])
+recode!(ionosphere[:Evidence], "g" => "good", "b" => "bad")
