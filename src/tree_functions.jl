@@ -30,32 +30,82 @@ randconditions(treetype::Type{DecisionTree{N}} where {N}; crange = (-10, 10)) =
 randconditions(treetype::Type{DecisionTree{N}} where {N}, n; crange = (-10, 10)) =
     [randconditions(Base.GLOBAL_RNG, treetype; crange = crange) for i = 1:n]
 
-function randtree{N}(rng::AbstractRNG, treetype::Type{DecisionTree{N}}, maxdepth, ramp_probability;
-                          crange = (-10, 10))
+
+abstract type GenConfig end
+
+function randtree end
+
+randtree(genconfig::GenConfig) = randtree(Base.GLOBAL_RNG, genconfig)
+randtree(genconfig::GenConfig, n) = [randtree(Base.GLOBAL_RNG, genconfig) for _ = 1:n]
+
+
+struct Ramped{N} <: GenConfig
+    maxdepth::Int
+    split_probability::Float64
+    crange::Tuple{Float64, Float64}
+    
+    Ramped{N}(m, r, c = (-10, 10)) where N =
+        (0.0 ≤ r ≤ 1.0) ? new{N}(m, r, c) : error(r, " is not a probability!")
+end
+
+decreasedepth{N}(r::Ramped{N}) = Ramped{N}(r.maxdepth - 1, r.split_probability, r.crange)
+
+function randtree{N}(rng::AbstractRNG, genconfig::Ramped{N})
+    maxdepth = genconfig.maxdepth
+    split_probability = genconfig.split_probability
+    crange = genconfig.crange
     a, b = (crange[2] - crange[1]), crange[1]
 
-    if maxdepth == 1 || rand(rng) ≤ ramp_probability
+    if maxdepth == 1 || rand(rng) ≥ split_probability
         rand(rng, Variable{N})
     else
-        conditions = randconditions(rng, treetype, crange = crange)
+        conditions = randconditions(rng, DecisionTree{N}, crange = genconfig.crange)
         threshold = a * rand(rng) + b
-        true_children = randtree(rng, treetype, maxdepth - 1, ramp_probability)
-        false_children = randtree(rng, treetype, maxdepth - 1, ramp_probability)
+        true_children = randtree(rng, decreasedepth(genconfig))
+        false_children = randtree(rng, decreasedepth(genconfig))
         Branch{N}(conditions, threshold, true_children, false_children)
     end
 end
 
-randtree(treetype::Type{DecisionTree{N}} where N, maxdepth, ramp_probability; crange = (-10, 10)) =
-    randtree(Base.GLOBAL_RNG, treetype, maxdepth, ramp_probability, crange = crange)
-randtree(treetype::Type{DecisionTree{N}} where N, maxdepth, ramp_probability, n;
-         crange = (-10, 10)) =
-    [randtree(Base.GLOBAL_RNG, treetype, maxdepth, ramp_probability, crange = crange) for i = 1:n]
 
-# function randtree_ramped(rng::AbstractRNG, ::Type{DecisionTree{N}}, maxdepth::Int;
-#                          full_proportion = 0.5)
-#     @assert 0.0 ≤ full_proportion ≤ 1.0
-#     randtree(rng, DecisionTree{N})
-# end
+struct RampedSplit{N} <: GenConfig
+    maxdepth::Int
+    split_probability::Float64
+    rand_portion::Float64
+    crange::Tuple{Float64, Float64}
+    
+    function RampedSplit{N}(m, r, p, c = (-10, 10)) where N
+        @assert (0.0 ≤ r ≤ 1.0) "$r is not a probability!"
+        @assert (0.0 ≤ p ≤ 1.0) "$p is not a valid percentage!"
+        new{N}(m, r, p, c)
+        
+    end
+end
+
+decreasedepth{N}(r::RampedSplit{N}) =
+    RampedSplit{N}(r.maxdepth - 1, r.split_probability, r.rand_portion, r.crange)
+
+function randtree{N}(rng::AbstractRNG, genconfig::RampedSplit{N})
+    maxdepth = genconfig.maxdepth
+    split_probability = genconfig.split_probability
+    rand_portion = genconfig.rand_portion
+    crange = genconfig.crange
+    a, b = (crange[2] - crange[1]), crange[1]
+
+    if rand(rng) ≥ rand_portion
+        split_probability = 0.0
+    end
+    
+    if maxdepth == 1 || rand(rng) ≤ split_probability
+        rand(rng, Variable{N})
+    else
+        conditions = randconditions(rng, DecisionTree{N}, crange = genconfig.crange)
+        threshold = a * rand(rng) + b
+        true_children = randtree(rng, decreasedepth(genconfig))
+        false_children = randtree(rng, decreasedepth(genconfig))
+        Branch{N}(conditions, threshold, true_children, false_children)
+    end
+end
 
 
 
@@ -94,9 +144,18 @@ randtree(treetype::Type{DecisionTree{N}} where N, maxdepth, ramp_probability, n;
 # genTree :: GenM Tree
 # genTree = genTreeLB `mplus` genTree
 
+struct Boltzmann{N} <: GenConfig
+    minsize::Int
+    maxsize::Int
+    crange::Tuple{Float64, Float64}
+    
+    Boltzmann{N}(m, n, c = (-10, 10)) where N = new{N}(m, n, c)
+end
 
-function boltzmann_ub{N}(rng::AbstractRNG, treetype::Type{DecisionTree{N}},
-                         minsize, maxsize, cursize, crange)
+function boltzmann_ub{N}(rng::AbstractRNG, genconfig::Boltzmann{N}, cursize)
+    minsize = genconfig.minsize
+    maxsize = genconfig.maxsize
+    crange = genconfig.crange
     a, b = (crange[2] - crange[1]), crange[1]
 
     if cursize > maxsize
@@ -104,13 +163,13 @@ function boltzmann_ub{N}(rng::AbstractRNG, treetype::Type{DecisionTree{N}},
     elseif rand(rng) ≤ 0.5
         return Nullable{DecisionTree{N}}(rand(rng, Variable{N})), cursize
     else
-        true_children, cursize = boltzmann_ub(rng, treetype, minsize, maxsize, cursize + 1, crange)
+        true_children, cursize = boltzmann_ub(rng, genconfig, cursize + 1)
         isnull(true_children) && @goto bound_exceeded
 
-        false_children, cursize = boltzmann_ub(rng, treetype, minsize, maxsize, cursize + 1, crange)
+        false_children, cursize = boltzmann_ub(rng, genconfig, cursize + 1)
         isnull(false_children) && @goto bound_exceeded
 
-        conditions = randconditions(rng, treetype, crange = crange)
+        conditions = randconditions(rng, DecisionTree{N}, crange = crange)
         threshold = a * rand(rng) + b
         t = Branch{N}(conditions, threshold, get(true_children), get(false_children))
         return Nullable{DecisionTree{N}}(t), cursize
@@ -120,22 +179,12 @@ function boltzmann_ub{N}(rng::AbstractRNG, treetype::Type{DecisionTree{N}},
     end
 end
 
-function randtree_boltzmann{N}(rng::AbstractRNG, treetype::Type{DecisionTree{N}},
-                               minsize, maxsize; crange = (-10, 10))
-    candidate, size = boltzmann_ub(rng, treetype, minsize, maxsize, 0, crange)
-    while isnull(candidate) || size < minsize
-        candidate, size = boltzmann_ub(rng, treetype, minsize, maxsize, 0, crange)
+function randtree{N}(rng::AbstractRNG, genconfig::Boltzmann{N})
+    candidate, size = boltzmann_ub(rng, genconfig, 0)
+    while isnull(candidate) || size < genconfig.minsize
+        candidate, size = boltzmann_ub(rng, genconfig, 0)
     end
 
     return get(candidate)
-end
-
-function randtree_boltzmann{N}(treetype::Type{DecisionTree{N}}, minsize, maxsize; crange = (-10, 10))
-    randtree_boltzmann(Base.GLOBAL_RNG, treetype, minsize, maxsize, crange = crange)
-end
-
-function randtree_boltzmann{N}(treetype::Type{DecisionTree{N}}, minsize, maxsize, n;
-                               crange = (-10, 10))
-    [randtree_boltzmann(Base.GLOBAL_RNG, treetype, minsize, maxsize, crange = crange) for i = 1:n]
 end
 
