@@ -31,50 +31,50 @@ randconditions(treetype::Type{DecisionTree{N}} where {N}, n; crange = (-10, 10))
     [randconditions(Base.GLOBAL_RNG, treetype; crange = crange) for i = 1:n]
 
 
-abstract type GenConfig end
+abstract type TreeSampler end
 
 function randtree end
 
-randtree(genconfig::GenConfig) = randtree(Base.GLOBAL_RNG, genconfig)
-randtree(genconfig::GenConfig, n) = [randtree(Base.GLOBAL_RNG, genconfig) for _ = 1:n]
+randtree(sampler::TreeSampler) = randtree(Base.GLOBAL_RNG, sampler)
+randtree(sampler::TreeSampler, n) = [randtree(Base.GLOBAL_RNG, sampler) for _ = 1:n]
 
 
-struct Ramped{N} <: GenConfig
+struct SplitSampler{N} <: TreeSampler
     maxdepth::Int
     split_probability::Float64
     crange::Tuple{Float64, Float64}
     
-    Ramped{N}(m, r, c = (-10, 10)) where N =
+    SplitSampler{N}(m, r, c = (-10, 10)) where N =
         (0.0 ≤ r ≤ 1.0) ? new{N}(m, r, c) : error(r, " is not a probability!")
 end
 
-decreasedepth{N}(r::Ramped{N}) = Ramped{N}(r.maxdepth - 1, r.split_probability, r.crange)
+decreasedepth{N}(r::SplitSampler{N}) = SplitSampler{N}(r.maxdepth - 1, r.split_probability, r.crange)
 
-function randtree{N}(rng::AbstractRNG, genconfig::Ramped{N})
-    maxdepth = genconfig.maxdepth
-    split_probability = genconfig.split_probability
-    crange = genconfig.crange
+function randtree{N}(rng::AbstractRNG, sampler::SplitSampler{N})
+    maxdepth = sampler.maxdepth
+    split_probability = sampler.split_probability
+    crange = sampler.crange
     a, b = (crange[2] - crange[1]), crange[1]
 
     if maxdepth == 1 || rand(rng) ≥ split_probability
         rand(rng, Variable{N})
     else
-        conditions = randconditions(rng, DecisionTree{N}, crange = genconfig.crange)
+        conditions = randconditions(rng, DecisionTree{N}, crange = sampler.crange)
         threshold = a * rand(rng) + b
-        true_children = randtree(rng, decreasedepth(genconfig))
-        false_children = randtree(rng, decreasedepth(genconfig))
+        true_children = randtree(rng, decreasedepth(sampler))
+        false_children = randtree(rng, decreasedepth(sampler))
         Branch{N}(conditions, threshold, true_children, false_children)
     end
 end
 
 
-struct RampedSplit{N} <: GenConfig
+struct RampedSplitSampler{N} <: TreeSampler
     maxdepth::Int
     split_probability::Float64
     rand_portion::Float64
     crange::Tuple{Float64, Float64}
     
-    function RampedSplit{N}(m, r, p, c = (-10, 10)) where N
+    function RampedSplitSampler{N}(m, r, p, c = (-10, 10)) where N
         @assert (0.0 ≤ r ≤ 1.0) "$r is not a probability!"
         @assert (0.0 ≤ p ≤ 1.0) "$p is not a valid percentage!"
         new{N}(m, r, p, c)
@@ -82,14 +82,14 @@ struct RampedSplit{N} <: GenConfig
     end
 end
 
-decreasedepth{N}(r::RampedSplit{N}) =
-    RampedSplit{N}(r.maxdepth - 1, r.split_probability, r.rand_portion, r.crange)
+decreasedepth{N}(r::RampedSplitSampler{N}) =
+    RampedSplitSampler{N}(r.maxdepth - 1, r.split_probability, r.rand_portion, r.crange)
 
-function randtree{N}(rng::AbstractRNG, genconfig::RampedSplit{N})
-    maxdepth = genconfig.maxdepth
-    split_probability = genconfig.split_probability
-    rand_portion = genconfig.rand_portion
-    crange = genconfig.crange
+function randtree{N}(rng::AbstractRNG, sampler::RampedSplitSampler{N})
+    maxdepth = sampler.maxdepth
+    split_probability = sampler.split_probability
+    rand_portion = sampler.rand_portion
+    crange = sampler.crange
     a, b = (crange[2] - crange[1]), crange[1]
 
     if rand(rng) ≥ rand_portion
@@ -99,10 +99,10 @@ function randtree{N}(rng::AbstractRNG, genconfig::RampedSplit{N})
     if maxdepth == 1 || rand(rng) ≤ split_probability
         rand(rng, Variable{N})
     else
-        conditions = randconditions(rng, DecisionTree{N}, crange = genconfig.crange)
+        conditions = randconditions(rng, DecisionTree{N}, crange = sampler.crange)
         threshold = a * rand(rng) + b
-        true_children = randtree(rng, decreasedepth(genconfig))
-        false_children = randtree(rng, decreasedepth(genconfig))
+        true_children = randtree(rng, decreasedepth(sampler))
+        false_children = randtree(rng, decreasedepth(sampler))
         Branch{N}(conditions, threshold, true_children, false_children)
     end
 end
@@ -144,18 +144,18 @@ end
 # genTree :: GenM Tree
 # genTree = genTreeLB `mplus` genTree
 
-struct Boltzmann{N} <: GenConfig
+struct BoltzmannSampler{N} <: TreeSampler
     minsize::Int
     maxsize::Int
     crange::Tuple{Float64, Float64}
     
-    Boltzmann{N}(m, n, c = (-10, 10)) where N = new{N}(m, n, c)
+    BoltzmannSampler{N}(m, n, c = (-10, 10)) where N = new{N}(m, n, c)
 end
 
-function boltzmann_ub{N}(rng::AbstractRNG, genconfig::Boltzmann{N}, cursize)
-    minsize = genconfig.minsize
-    maxsize = genconfig.maxsize
-    crange = genconfig.crange
+function boltzmann_ub{N}(rng::AbstractRNG, sampler::BoltzmannSampler{N}, cursize)
+    minsize = sampler.minsize
+    maxsize = sampler.maxsize
+    crange = sampler.crange
     a, b = (crange[2] - crange[1]), crange[1]
 
     if cursize > maxsize
@@ -163,10 +163,10 @@ function boltzmann_ub{N}(rng::AbstractRNG, genconfig::Boltzmann{N}, cursize)
     elseif rand(rng) ≤ 0.5
         return Nullable{DecisionTree{N}}(rand(rng, Variable{N})), cursize
     else
-        true_children, cursize = boltzmann_ub(rng, genconfig, cursize + 1)
+        true_children, cursize = boltzmann_ub(rng, sampler, cursize + 1)
         isnull(true_children) && @goto bound_exceeded
 
-        false_children, cursize = boltzmann_ub(rng, genconfig, cursize + 1)
+        false_children, cursize = boltzmann_ub(rng, sampler, cursize + 1)
         isnull(false_children) && @goto bound_exceeded
 
         conditions = randconditions(rng, DecisionTree{N}, crange = crange)
@@ -179,10 +179,10 @@ function boltzmann_ub{N}(rng::AbstractRNG, genconfig::Boltzmann{N}, cursize)
     end
 end
 
-function randtree{N}(rng::AbstractRNG, genconfig::Boltzmann{N})
-    candidate, size = boltzmann_ub(rng, genconfig, 0)
-    while isnull(candidate) || size < genconfig.minsize
-        candidate, size = boltzmann_ub(rng, genconfig, 0)
+function randtree{N}(rng::AbstractRNG, sampler::BoltzmannSampler{N})
+    candidate, size = boltzmann_ub(rng, sampler, 0)
+    while isnull(candidate) || size < sampler.minsize
+        candidate, size = boltzmann_ub(rng, sampler, 0)
     end
 
     return get(candidate)
