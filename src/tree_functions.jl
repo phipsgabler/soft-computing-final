@@ -1,22 +1,9 @@
-# Generate_Tree( max_depth, generation_method )
-# begin
-# if max_depth = 1 then
-# set the root of the tree to a randomly selected terminal;
-# else if generation_method = full then
-# set the root of the tree to a randomly selected non-terminal;
-# else
-# set the root to a randomly selected element which is either
-# terminal or non-terminal;
-# for each argument of the root, generate a subtree with the call
-# Generate_Tree( max_depth - 1, generation_method );
-# end;
-
 import Base: rand
 
 
 Base.rand{N}(rng::AbstractRNG, ::Type{Variable{N}}) = Variable{N}(rand(rng, 1:N))
 
-function randconditions{N}(rng::AbstractRNG, ::Type{DecisionTree{N}}; crange = (-10, 10))
+function randconditions{N}(rng::AbstractRNG, ::Type{DecisionTree{N}}, crange)
     a, b = (crange[2] - crange[1]), crange[1]
     
     # Choose k ∈ {1..N} variables with replacement at random.  Since these are dicts, duplicate
@@ -31,15 +18,14 @@ randconditions(treetype::Type{DecisionTree{N}} where {N}, n; crange = (-10, 10))
     [randconditions(Base.GLOBAL_RNG, treetype; crange = crange) for i = 1:n]
 
 
-abstract type TreeSampler end
+abstract type TreeSampler{N} end
 
-function randtree end
+Base.rand(sampler::TreeSampler) = rand(Base.GLOBAL_RNG, sampler)
+Base.rand(rng::AbstractRNG, sampler::TreeSampler, n) = [rand(rng, sampler) for _ = 1:n]
+Base.rand(sampler::TreeSampler, n) = rand(Base.GLOBAL_RNG, sampler, n)
 
-randtree(sampler::TreeSampler) = randtree(Base.GLOBAL_RNG, sampler)
-randtree(sampler::TreeSampler, n) = [randtree(Base.GLOBAL_RNG, sampler) for _ = 1:n]
 
-
-struct SplitSampler{N} <: TreeSampler
+struct SplitSampler{N} <: TreeSampler{N}
     maxdepth::Int
     split_probability::Float64
     crange::Tuple{Float64, Float64}
@@ -50,7 +36,7 @@ end
 
 decreasedepth{N}(r::SplitSampler{N}) = SplitSampler{N}(r.maxdepth - 1, r.split_probability, r.crange)
 
-function randtree{N}(rng::AbstractRNG, sampler::SplitSampler{N})
+function Base.rand{N}(rng::AbstractRNG, sampler::SplitSampler{N})
     maxdepth = sampler.maxdepth
     split_probability = sampler.split_probability
     crange = sampler.crange
@@ -59,16 +45,16 @@ function randtree{N}(rng::AbstractRNG, sampler::SplitSampler{N})
     if maxdepth == 1 || rand(rng) ≥ split_probability
         rand(rng, Variable{N})
     else
-        conditions = randconditions(rng, DecisionTree{N}, crange = sampler.crange)
+        conditions = randconditions(rng, DecisionTree{N}, crange)
         threshold = a * rand(rng) + b
-        true_children = randtree(rng, decreasedepth(sampler))
-        false_children = randtree(rng, decreasedepth(sampler))
+        true_children = rand(rng, decreasedepth(sampler))
+        false_children = rand(rng, decreasedepth(sampler))
         Branch{N}(conditions, threshold, true_children, false_children)
     end
 end
 
 
-struct RampedSplitSampler{N} <: TreeSampler
+struct RampedSplitSampler{N} <: TreeSampler{N}
     maxdepth::Int
     split_probability::Float64
     rand_portion::Float64
@@ -85,7 +71,7 @@ end
 decreasedepth{N}(r::RampedSplitSampler{N}) =
     RampedSplitSampler{N}(r.maxdepth - 1, r.split_probability, r.rand_portion, r.crange)
 
-function randtree{N}(rng::AbstractRNG, sampler::RampedSplitSampler{N})
+function Base.rand{N}(rng::AbstractRNG, sampler::RampedSplitSampler{N})
     maxdepth = sampler.maxdepth
     split_probability = sampler.split_probability
     rand_portion = sampler.rand_portion
@@ -99,10 +85,10 @@ function randtree{N}(rng::AbstractRNG, sampler::RampedSplitSampler{N})
     if maxdepth == 1 || rand(rng) ≤ split_probability
         rand(rng, Variable{N})
     else
-        conditions = randconditions(rng, DecisionTree{N}, crange = sampler.crange)
+        conditions = randconditions(rng, DecisionTree{N}, crange)
         threshold = a * rand(rng) + b
-        true_children = randtree(rng, decreasedepth(sampler))
-        false_children = randtree(rng, decreasedepth(sampler))
+        true_children = rand(rng, decreasedepth(sampler))
+        false_children = rand(rng, decreasedepth(sampler))
         Branch{N}(conditions, threshold, true_children, false_children)
     end
 end
@@ -144,7 +130,7 @@ end
 # genTree :: GenM Tree
 # genTree = genTreeLB `mplus` genTree
 
-struct BoltzmannSampler{N} <: TreeSampler
+struct BoltzmannSampler{N} <: TreeSampler{N}
     minsize::Int
     maxsize::Int
     crange::Tuple{Float64, Float64}
@@ -169,7 +155,7 @@ function boltzmann_ub{N}(rng::AbstractRNG, sampler::BoltzmannSampler{N}, cursize
         false_children, cursize = boltzmann_ub(rng, sampler, cursize + 1)
         isnull(false_children) && @goto bound_exceeded
 
-        conditions = randconditions(rng, DecisionTree{N}, crange = crange)
+        conditions = randconditions(rng, DecisionTree{N}, crange)
         threshold = a * rand(rng) + b
         t = Branch{N}(conditions, threshold, get(true_children), get(false_children))
         return Nullable{DecisionTree{N}}(t), cursize
@@ -179,7 +165,7 @@ function boltzmann_ub{N}(rng::AbstractRNG, sampler::BoltzmannSampler{N}, cursize
     end
 end
 
-function randtree{N}(rng::AbstractRNG, sampler::BoltzmannSampler{N})
+function Base.rand{N}(rng::AbstractRNG, sampler::BoltzmannSampler{N})
     candidate, size = boltzmann_ub(rng, sampler, 0)
     while isnull(candidate) || size < sampler.minsize
         candidate, size = boltzmann_ub(rng, sampler, 0)
