@@ -8,7 +8,7 @@ struct Variable{N} <: DecisionTree{N}
     Variable{N}(m) where N = (1 <= m <= N) ? new{N}(m) : error("Illegal construction")
 end
 
-struct Branch{N}
+struct Branch{N} <: DecisionTree{N}
     conditions::Dict{Variable{N}, Float64}
     threshold::Float64
     iftrue::DecisionTree{N}
@@ -27,15 +27,15 @@ function Base.show(io::IO, v::Variable, indent = 0)
     print(io, "x", unicode_subscript(v.n))
 end
 
-function Base.show(io::IO, b::Branch, indent = 0)
-    print(io, " " ^ indent, "if ")
+function Base.show(io::IO, b::Branch, indent = 0; digits = 2)
+    print(io, "if ")
     if !isempty(b.conditions)
         sorted_conditions = sort(collect(b.conditions), by = c -> c.first.n)
-        join(io, ("$f × $v" for (v, f) in sorted_conditions), " + ")
+        join(io, ("$(round(f, digits)) × $v" for (v, f) in sorted_conditions), " + ")
     else
         print(io, "0.0")
     end
-    print(io, " ≤ ", b.threshold, "\n")
+    print(io, " ≤ ", round(b.threshold, digits), "\n")
     print(io, " " ^ (indent + 2), "then ")
     show(io, b.iftrue, indent + 2)
     print(io, "\n", " " ^ (indent + 2), "else ")
