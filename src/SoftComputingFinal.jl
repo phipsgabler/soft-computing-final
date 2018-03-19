@@ -12,6 +12,8 @@ export
     # Basic tree representation etc.
     DecisionTree, Variable, Branch, treedepth, treesize, decide, normalize_conditions,
     # Sampling
-    SplitSampler, RampedSplitSampler, BoltzmannSampler
+    SplitSampler, RampedSplitSampler, BoltzmannSampler,
+    # Genetic programming
+    rungp
 
 end # module
