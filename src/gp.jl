@@ -61,6 +61,7 @@ function update!(model, s::GPModelSolver)
     ms = s.mutation_sampler
 
     # breed
+    # TODO paralleize this
     children = similar(parents)
     for i in eachindex(children)
         p₁ = selection(parents, fitness_values, k)
@@ -71,7 +72,7 @@ function update!(model, s::GPModelSolver)
 
     # update
     parents .= children
-    fitness_values .= fitness.(parents)
+    fitness_values .= fitness.(parents) # TODO: pmap this!
 end
 
 
