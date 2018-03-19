@@ -100,6 +100,7 @@ function normalize_conditions{N}(conditions::Dict{Variable{N}, Float64})
 end
 
 
+# Extracting this into a type improves type stability a lot.
 struct Cont{N}
     context::Function
     chunk::DecisionTree{N}
@@ -149,4 +150,10 @@ function randomsplit{N}(action, rng::AbstractRNG, t::DecisionTree{N})
 end
 
 randomsplit{N}(action, t::DecisionTree{N}) = randomsplit(action, Base.GLOBAL_RNG, t)
+
+"""
+    randomchild(t::DecisionTree)
+
+Select uniformly at random a subtree of `t`.
+"""
 randomchild{N}(t::DecisionTree{N}) = randomsplit(identity, t)[2]
