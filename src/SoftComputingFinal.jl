@@ -11,9 +11,13 @@ include("gp.jl")
 export
     # Basic tree representation etc.
     DecisionTree, Variable, Branch, treedepth, treesize, decide, normalize_conditions,
+    randomsplit
     # Sampling
     SplitSampler, RampedSplitSampler, BoltzmannSampler,
     # Genetic programming
     rungp
 
 end # module
+
+
+# workspace(); include("SoftComputingFinal.jl"); using SoftComputingFinal

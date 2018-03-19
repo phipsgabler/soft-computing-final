@@ -3,10 +3,12 @@ include("../src/SoftComputingFinal.jl")
 using SoftComputingFinal
 using Base.Test
 
+const TEST_RNG = MersenneTwister(12345678)
+
 @testset "DecisionTree" begin
     forest = [Variable{3}(1),
-              Branch(Dict(Variable{2}(1) => 0.1, Variable{2}(2) => 3.0), 1.0,
-                     Variable{2}(2), Variable{2}(1)),
+              Branch(Dict(Variable{3}(1) => 0.1, Variable{3}(2) => 3.0), 1.0,
+                     Variable{3}(2), Variable{3}(1)),
               Branch(Dict(Variable{3}(1) => -4.2, Variable{3}(3) => 9.93), 1.16,
                      Branch(Dict(Variable{3}(1) => -0.79, Variable{3}(2) => 2.87), 5.96,
                             Variable{3}(1), Variable{3}(2)),
@@ -29,7 +31,7 @@ using Base.Test
 
     depths = [1, 2, 3]
     sizes = [1, 3, 7]
-    conditions = [nothing, [0.1, 3.0], [-4.2, 0.0, 9.93]]
+    conditions = [nothing, [0.1, 3.0, 0.0], [-4.2, 0.0, 9.93]]
     
     for i in eachindex(forest)
         if forest[i] isa Branch
@@ -38,7 +40,16 @@ using Base.Test
         
         @test string(forest[i]) == printed[i]
         @test treedepth(forest[i]) == depths[i]
-        @test treesize(forest[i]) == sizes[i]
+        s = treesize(forest[i])
+        @test s == sizes[i]
+
+        
+        newt, chunk = randomsplit(TEST_RNG, forest[i]) do chunk
+            Variable{3}(3)
+        end
+        @test treesize(newt) - 1 == s - treesize(chunk)
     end
+
+    
 end
 
