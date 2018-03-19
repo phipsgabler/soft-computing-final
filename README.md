@@ -1,5 +1,10 @@
 # Selected Topics in Soft Computing: Final Project
 
+This is the code for my final project for the course [Selected Topics in Soft
+Computing](https://korppi.jyu.fi/kotka/course/student/courseInfo.jsp?course=216250) at JYU.  The
+project consists of replicating the paper "Application of genetic programming to induction of linear
+classification trees" (Bot and Langdon, 2000).
+
 ## Data
 
 The `data` folder contains the following three data sets from the UCI Machine Learning Repository:
@@ -13,6 +18,15 @@ The `data` folder contains the following three data sets from the UCI Machine Le
 
 These datasets were retrieved through Jack Dunn's
 [`uci-data`](https://github.com/JackDunnNZ/uci-data) script.
+
+## Boltzmann Sampler
+
+Recursively generating random trees can be problematic if done naively, since the resulting samples
+are usually either very small or very large.  Out of interest, and deviating from the paper (and the
+original description in (Montana, 1995)), I translated Brent Yorgey's [size-limited critical
+Boltzmann
+sampler](https://byorgey.wordpress.com/2013/04/25/random-binary-trees-with-a-size-limited-critical-boltzmann-sampler-2/),
+which allows to efficiently generate random trees in a given size range.
 
 ## References
 
