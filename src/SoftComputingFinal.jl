@@ -12,6 +12,9 @@ export DecisionTree,
     treedepth,
     treesize,
     decide,
-    normalize_conditions
+    normalize_conditions,
+    SplitSampler,
+    RampedSplitSampler,
+    BoltzmannSampler
 
 end # module
