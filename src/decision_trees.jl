@@ -100,29 +100,40 @@ function normalize_conditions{N}(conditions::Dict{Variable{N}, Float64})
 end
 
 
-function randomsplit_impl(rng::AbstractRNG, t::Variable, n, context, continuation)
-    n += 1
-    if rand(rng) ≤ 1/n
-        continuation = k -> (context(k(t)), t)
-    end
-
-    return continuation, n
+struct Cont{N}
+    context::Function
+    chunk::DecisionTree{N}
 end
 
-function randomsplit_impl(rng::AbstractRNG, t::Branch, n, context, continuation)
-    continuation, n = randomsplit_impl(rng, t.iftrue, n,
-                                       b -> context(Branch(t.conditions, t.threshold, b, t.iffalse)),
-                                       continuation)
-    continuation, n = randomsplit_impl(rng, t.iffalse, n,
-                                       b -> context(Branch(t.conditions, t.threshold, t.iftrue, b)),
-                                       continuation)
+function (continuation::Cont{N})(k::Function) where N
+    newchunk = k(continuation.chunk)::DecisionTree{N}
+    tree = continuation.context(newchunk)::DecisionTree{N}
+    return tree, continuation.chunk
+end
+
+function randomsplit_impl{N}(rng::AbstractRNG, t::Variable{N}, n::Int,
+                             context::Function, continuation::Cont{N})
+    n += 1
+    if rand() ≤ 1/n
+        return Cont{N}(context, t), n
+    else    
+        return continuation, n
+    end
+end
+
+function randomsplit_impl{N}(rng::AbstractRNG, t::Branch{N}, n, context, continuation)
+    c1, n = randomsplit_impl(rng, t.iftrue, n,
+                             b -> context(Branch{N}(t.conditions, t.threshold, b, t.iffalse)),
+                             continuation)
+    c2, n = randomsplit_impl(rng, t.iffalse, n,
+                             b -> context(Branch{N}(t.conditions, t.threshold, t.iftrue, b)), c1)
 
     n += 1
-    if rand(rng) ≤ 1/n
-        continuation = k -> (context(k(t)), t)
+    if rand() ≤ 1/n
+        return Cont{N}(context, t), n
+    else    
+        return c2, n
     end
-    
-    return continuation, n
 end
 
 """
@@ -131,12 +142,11 @@ end
 Select uniformly at random a point to split `t`, then replace the subtree `s` by `action(s)`. 
 Returns both the new tree and the replaced subtree.
 """
-function randomsplit(action, rng::AbstractRNG, t::DecisionTree)
+function randomsplit{N}(action, rng::AbstractRNG, t::DecisionTree{N})
     # Uses reservoir samling of continuations, see: https://stackoverflow.com/a/3272490/1346276.
-    # The continuation argument will be assigned a default with probability 1 on the first leave,
-    # so passing `nothing` is safe here.
-    cont, _ = randomsplit_impl(rng, t, 0, identity, nothing)
+    cont, _ = randomsplit_impl(rng, t, 0, identity, Cont{N}(identity, t))
     cont(action)
 end
 
-randomsplit(action, t::DecisionTree) = randomsplit(action, Base.GLOBAL_RNG, t)
+randomsplit{N}(action, t::DecisionTree{N}) = randomsplit(action, Base.GLOBAL_RNG, t)
+randomchild{N}(t::DecisionTree{N}) = randomsplit(identity, t)[2]

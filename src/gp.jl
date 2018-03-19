@@ -2,16 +2,16 @@ using LearningStrategies
 import LearningStrategies: update!
 
 struct GPModel{N}
-    population
+    population::Vector{Union{Variable{N}, Branch{N}}}
     fitness
     fitness_values
 
-    GPModel{N}(population::AbstractVector{T} where T<:DecisionTree{N},
+    GPModel{N}(population::AbstractVector{<:DecisionTree{N}},
                fitness, fitness_values) where N =
         new{N}(population, fitness, fitness_values)
 end
 
-GPModel(population::AbstractVector{T} where T<:DecisionTree{N}, fitness) where N =
+GPModel(population::AbstractVector{<:DecisionTree{N}}, fitness) where N =
     GPModel{N}(population, fitness, fitness.(population))
 
 
@@ -33,8 +33,7 @@ end
 function crossover(parent₁, parent₂)
     # choosing a random `chunk` from `parent₂` and splice it somewhere into `parent₁`
     newtree, _ = randomsplit(parent₁) do _
-        _, chunk = randomsplit(identity, parent₂)
-        chunk
+        randomchild(parent₂)
     end
 
     return newtree
