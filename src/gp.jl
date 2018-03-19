@@ -6,9 +6,13 @@ struct GPModel{N}
     fitness
     fitness_values
 
-    GPModel{N}(population::Vector{T} where T<:DecisionTree{N}, fitness) where N =
-        new{N}(population, fitness, fitness.(population))
+    GPModel{N}(population::AbstractVector{T} where T<:DecisionTree{N},
+               fitness, fitness_values) where N =
+        new{N}(population, fitness, fitness_values)
 end
+
+GPModel(population::AbstractVector{T} where T<:DecisionTree{N}, fitness) where N =
+    GPModel{N}(population, fitness, fitness.(population))
 
 
 
@@ -60,7 +64,7 @@ function rungp{N}(fitness, psize::Int, sampler::TreeSampler{N}, maxiter::Int)
     population = rand(sampler, psize)
     tracing_max = Tracer(DecisionTree{N}, (m, i) -> m.population[indmax(m.fitness_values)])
     
-    learn!(GPModel{N}(population, fitness),
+    learn!(GPModel(population, fitness),
            strategy(GPModelSolver(7, 0.2, 0.8),
                     Verbose(MaxIter(maxiter)),
                     tracing_max))
