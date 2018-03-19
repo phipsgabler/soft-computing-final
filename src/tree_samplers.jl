@@ -3,6 +3,13 @@ import Base: rand
 
 Base.rand{N}(rng::AbstractRNG, ::Type{Variable{N}}) = Variable{N}(rand(rng, 1:N))
 
+
+"""
+    randconditions{N}(rng::AbstractRNG, ::Type{DecisionTree{N}}, crange)
+    
+Generate a random condition dictionary for a `DecisionTree{N}`, consisting of 1--N `Variable{N}`s
+and their factors.
+"""
 function randconditions{N}(rng::AbstractRNG, ::Type{DecisionTree{N}}, crange)
     a, b = (crange[2] - crange[1]), crange[1]
     
@@ -12,6 +19,12 @@ function randconditions{N}(rng::AbstractRNG, ::Type{DecisionTree{N}}, crange)
     Dict{Variable{N}, Float64}(zip(rand(rng, Variable{N}, k), a * rand(rng, k) + b))
 end
 
+"""
+    randconditions{N}(::Type{DecisionTree{N}} [, n];crange)
+
+Generate one or `n` random condition dictionary for a `DecisionTree{N}`, consisting of 1--N
+`Variable{N}`s and their factors.
+"""
 randconditions(treetype::Type{DecisionTree{N}} where {N}; crange = (-10, 10)) =
     randconditions(Base.GLOBAL_RNG, treetype; crange = crange)
 randconditions(treetype::Type{DecisionTree{N}} where {N}, n; crange = (-10, 10)) =
@@ -29,9 +42,16 @@ struct SplitSampler{N} <: TreeSampler{N}
     maxdepth::Int
     split_probability::Float64
     crange::Tuple{Float64, Float64}
-    
-    SplitSampler{N}(m, r, c = (-10, 10)) where N =
-        (0.0 ≤ r ≤ 1.0) ? new{N}(m, r, c) : error(r, " is not a probability!")
+
+    """
+        SplitSampler{N}(m, s [, c = (-10, 10)])
+
+    Configuration for sampling `DecisionTree{N}`s with maximum depth `m`, and probability of 
+    branching `s` (1.0 corresponds to "full sampling", 0.5 to "grow sampling".)  `c` is the 
+    range from which literals are sampled.
+    """
+    SplitSampler{N}(m, s, c = (-10, 10)) where N =
+        (0.0 ≤ s ≤ 1.0) ? new{N}(m, s, c) : error(s, " is not a probability!")
 end
 
 decreasedepth{N}(r::SplitSampler{N}) = SplitSampler{N}(r.maxdepth - 1, r.split_probability, r.crange)
@@ -59,11 +79,19 @@ struct RampedSplitSampler{N} <: TreeSampler{N}
     split_probability::Float64
     rand_portion::Float64
     crange::Tuple{Float64, Float64}
-    
-    function RampedSplitSampler{N}(m, r, p, c = (-10, 10)) where N
-        @assert (0.0 ≤ r ≤ 1.0) "$r is not a probability!"
+
+    """
+        RampedSplitSampler{N}(m, s, p [, c = (-10, 10)])
+
+    Configuration for sampling `DecisionTree{N}`s with maximum depth `m`, and probability of 
+    branching `s`.  Ramped sampling means that with probability `rand_portion`, we use grow sampling
+    with `s`, and otherwise full sampling (split probability 1.0). `c` is the range from which
+    literals are sampled.
+    """
+    function RampedSplitSampler{N}(m, s, p, c = (-10, 10)) where N
+        @assert (0.0 ≤ s ≤ 1.0) "$s is not a probability!"
         @assert (0.0 ≤ p ≤ 1.0) "$p is not a valid percentage!"
-        new{N}(m, r, p, c)
+        new{N}(m, s, p, c)
         
     end
 end
@@ -134,7 +162,13 @@ struct BoltzmannSampler{N} <: TreeSampler{N}
     minsize::Int
     maxsize::Int
     crange::Tuple{Float64, Float64}
-    
+
+    """
+        BoltzmannSampler{N}(m, n, [, c = (-10, 10)])
+
+    Configuration for Boltzmann sampling `DecisionTree{N}`s with minimum size `m` and maximum size
+    `n`.  `c` is the range from which literals are sampled.
+    """
     BoltzmannSampler{N}(m, n, c = (-10, 10)) where N = new{N}(m, n, c)
 end
 
@@ -144,24 +178,23 @@ function boltzmann_ub{N}(rng::AbstractRNG, sampler::BoltzmannSampler{N}, cursize
     crange = sampler.crange
     a, b = (crange[2] - crange[1]), crange[1]
 
-    if cursize > maxsize
+    if cursize > maxsize        # maximum bound exceeded
         return Nullable{DecisionTree{N}}(), cursize
-    elseif rand(rng) ≤ 0.5
+    elseif rand(rng) ≤ 0.5      # generate leaf
         return Nullable{DecisionTree{N}}(rand(rng, Variable{N})), cursize
-    else
+    else                        # try generating a branch -- if it's size is small enough
+        # try generating children, or immediately fail
         true_children, cursize = boltzmann_ub(rng, sampler, cursize + 1)
-        isnull(true_children) && @goto bound_exceeded
+        isnull(true_children) && return Nullable{DecisionTree{N}}(), cursize
 
         false_children, cursize = boltzmann_ub(rng, sampler, cursize + 1)
-        isnull(false_children) && @goto bound_exceeded
+        isnull(false_children) && return Nullable{DecisionTree{N}}(), cursize
 
+        # `cursize` is now the size of the whole thing, and less than maxsize
         conditions = randconditions(rng, DecisionTree{N}, crange)
         threshold = a * rand(rng) + b
-        t = Branch{N}(conditions, threshold, get(true_children), get(false_children))
-        return Nullable{DecisionTree{N}}(t), cursize
-        
-        @label bound_exceeded
-        return Nullable{DecisionTree{N}}(), cursize
+        result = Branch{N}(conditions, threshold, get(true_children), get(false_children))
+        return Nullable{DecisionTree{N}}(result), cursize        
     end
 end
 
