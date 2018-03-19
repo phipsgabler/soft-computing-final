@@ -16,11 +16,13 @@ GPModel(population::AbstractVector{T} where T<:DecisionTree{N}, fitness) where N
 
 
 
-struct GPModelSolver <: LearningStrategy
+struct GPModelSolver{N} <: LearningStrategy
     tournament_size::Int
-    crossover_probability::Float64
     mutation_probability::Float64
+    mutation_sampler::TreeSampler{N}
 end
+
+GPModelSolver(t, pc, pm, ms::TreeSampler{N}) where N = GPModelSolver{N}(t, pc, pm, ms)
 
 
 function selection(parents, parent_fitnesses, k)
@@ -28,12 +30,27 @@ function selection(parents, parent_fitnesses, k)
     parents[indmax(parent_fitnesses[candidates])]
 end
 
-function crossover(parent₁, parent₂, pc)
-    rand([parent₁, parent₂])
+function crossover(parent₁, parent₂)
+    # choosing a random `chunk` from `parent₂` and splice it somewhere into `parent₁`
+    newtree, _ = randomsplit(parent₁) do _
+        _, chunk = randomsplit(identity, parent₂)
+        chunk
+    end
+
+    return newtree
 end
 
-function mutate(individual, pm)
-    individual
+function mutate(individual, pₘ, mutation_sampler)
+    if rand() ≤ pₘ
+        newtree, chunk = randomsplit(individual) do _
+            # ignore chunk and replace by random stuff
+            rand(mutation_sampler)
+        end
+
+        return newtree
+    else
+        return individual
+    end
 end
 
 function update!(model, s::GPModelSolver)
@@ -41,16 +58,16 @@ function update!(model, s::GPModelSolver)
     fitness_values = model.fitness_values
     fitness = model.fitness
     k = s.tournament_size
-    pc = s.crossover_probability
-    pm = s.mutation_probability
+    pₘ = s.mutation_probability
+    ms = s.mutation_sampler
 
     # breed
     children = similar(parents)
     for i in eachindex(children)
         p₁ = selection(parents, fitness_values, k)
         p₂ = selection(parents, fitness_values, k)
-        child = crossover(p₁, p₂, pc)
-        children[i] = mutate(child, pm)
+        child = crossover(p₁, p₂)
+        children[i] = mutate(child, pₘ, ms)
     end
 
     # update
@@ -65,11 +82,9 @@ function rungp{N}(fitness, psize::Int, sampler::TreeSampler{N}, maxiter::Int)
     tracing_max = Tracer(DecisionTree{N}, (m, i) -> m.population[indmax(m.fitness_values)])
     
     learn!(GPModel(population, fitness),
-           strategy(GPModelSolver(7, 0.2, 0.8),
+           strategy(GPModelSolver(7, 0.5, sampler), # use log(size) / 2 for mutation sampler?
                     Verbose(MaxIter(maxiter)),
                     tracing_max))
 
     return population, collect(tracing_max)
 end
-
-# workspace(); include("SoftComputingFinal.jl"); using SoftComputingFinal
