@@ -101,8 +101,42 @@ end
 
 
 # Extracting this into a type improves type stability a lot.
+abstract type Context{N} end
+
+
+struct LeftContext{N} <: Context{N}
+    conditions::Dict{Variable{N}, Float64}
+    threshold::Float64
+    right::DecisionTree{N}
+    parent::Context{N}
+end
+
+function (context::LeftContext{N})(t::DecisionTree{N}) where N
+    context.parent(Branch{N}(context.conditions, context.threshold, t, context.right))
+end
+
+
+struct RightContext{N} <: Context{N}
+    conditions::Dict{Variable{N}, Float64}
+    threshold::Float64
+    left::DecisionTree{N}
+    parent::Context{N}
+end
+
+function (context::RightContext{N})(t::DecisionTree{N}) where N
+    context.parent(Branch{N}(context.conditions, context.threshold, context.left, t))
+end
+
+
+struct NoContext{N} <: Context{N} end
+    
+function (context::NoContext{N})(t::DecisionTree{N}) where N
+    t
+end
+
+
 struct Cont{N}
-    context::Function
+    context::Context{N}
     chunk::DecisionTree{N}
 end
 
@@ -112,26 +146,29 @@ function (continuation::Cont{N})(k::Function) where N
     return tree, continuation.chunk
 end
 
+
 function randomsplit_impl{N}(rng::AbstractRNG, t::Variable{N}, n::Int,
-                             context::Function, continuation::Cont{N})
+                             parent_context::Context{N}, continuation::Cont{N})
     n += 1
     if rand() ≤ 1/n
-        return Cont{N}(context, t), n
+        return Cont{N}(parent_context, t), n
     else    
         return continuation, n
     end
 end
 
-function randomsplit_impl{N}(rng::AbstractRNG, t::Branch{N}, n, context, continuation)
+function randomsplit_impl{N}(rng::AbstractRNG, t::Branch{N}, n,
+                             parent_context::Context{N}, continuation::Cont{N})
     c1, n = randomsplit_impl(rng, t.iftrue, n,
-                             b -> context(Branch{N}(t.conditions, t.threshold, b, t.iffalse)),
+                             LeftContext{N}(t.conditions, t.threshold, t.iffalse, parent_context),
                              continuation)
     c2, n = randomsplit_impl(rng, t.iffalse, n,
-                             b -> context(Branch{N}(t.conditions, t.threshold, t.iftrue, b)), c1)
-
+                             RightContext{N}(t.conditions, t.threshold, t.iftrue, parent_context),
+                             c1)
+    
     n += 1
     if rand() ≤ 1/n
-        return Cont{N}(context, t), n
+        return Cont{N}(parent_context, t), n
     else    
         return c2, n
     end
@@ -145,7 +182,9 @@ Returns both the new tree and the replaced subtree.
 """
 function randomsplit{N}(action, rng::AbstractRNG, t::DecisionTree{N})
     # Uses reservoir samling of continuations, see: https://stackoverflow.com/a/3272490/1346276.
-    cont, _ = randomsplit_impl(rng, t, 0, identity, Cont{N}(identity, t))
+    default_context = NoContext{N}()
+    default_continuation = Cont{N}(default_context, t)
+    cont, _ = randomsplit_impl(rng, t, 0, default_context, default_continuation)
     cont(action)
 end
 

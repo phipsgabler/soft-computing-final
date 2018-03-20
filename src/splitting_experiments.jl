@@ -11,8 +11,39 @@ struct Branch{N} <: Tree{N}
     right::Tree{N}
 end
 
+
+abstract type Context{N} end
+
+
+struct LeftContext{N} <: Context{N}
+    right::Tree{N}
+    parent::Context{N}
+end
+
+function (context::LeftContext{N})(t::Tree{N}) where N
+    context.parent(Branch(t, context.right))
+end
+
+
+struct RightContext{N} <: Context{N}
+    left::Tree{N}
+    parent::Context{N}
+end
+
+function (context::RightContext{N})(t::Tree{N}) where N
+    context.parent(Branch(context.left, t))
+end
+
+
+struct NoContext{N} <: Context{N} end
+    
+function (context::NoContext{N})(t::Tree{N}) where N
+    t
+end
+
+
 struct Cont{N}
-    context::Function
+    context::Context{N}
     chunk::Tree{N}
 end
 
@@ -22,7 +53,7 @@ function (continuation::Cont{N})(k::Function) where N
     return tree, continuation.chunk
 end
 
-function randomsplit_impl{N}(t::Leave{N}, n::Int, context::Function, continuation::Cont{N})
+function randomsplit_impl{N}(t::Leave{N}, n::Int, context::Context{N}, continuation::Cont{N})
     n += 1
     if rand() ≤ 1/n
         return Cont{N}(context, t), n
@@ -31,10 +62,10 @@ function randomsplit_impl{N}(t::Leave{N}, n::Int, context::Function, continuatio
     end
 end
 
-function randomsplit_impl{N}(t::Branch{N}, n::Int, context::Function, continuation::Cont{N})
-    c1, n = randomsplit_impl(t.left, n, b -> context(Branch(b, t.right)), continuation)
-    c2, n = randomsplit_impl(t.right, n, b -> context(Branch(t.left, b)), c1)
-
+function randomsplit_impl{N}(t::Branch{N}, n::Int, context::Context{N}, continuation::Cont{N})
+    c1, n = randomsplit_impl(t.left, n, LeftContext{N}(t.right, context), continuation)
+    c2, n = randomsplit_impl(t.right, n, RightContext{N}(t.left, context), c1)
+    
     n += 1
     if rand() ≤ 1/n
         return Cont{N}(context, t), n
@@ -44,7 +75,8 @@ function randomsplit_impl{N}(t::Branch{N}, n::Int, context::Function, continuati
 end
 
 function randomsplit{N}(action, t::Tree{N})
-    cont, _ = randomsplit_impl(t, 0, identity, Cont{N}(identity, t))
+    default_context = NoContext{N}()
+    cont, _ = randomsplit_impl(t, 0, default_context, Cont{N}(default_context, t))
     cont(action)
 end
 randomchild{N}(t::Tree{N}) = randomsplit(identity, t)[2]
