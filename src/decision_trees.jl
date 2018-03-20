@@ -1,23 +1,35 @@
 using StaticArrays
 import Base: show
 
-"""Decision tree for `N` variables, consisting of `Variable{N}`s and `Branch{N}`s."""
-abstract type DecisionTree{N} end
-
-struct Variable{N} <: DecisionTree{N}
+"""Variable for a `DecisionTree{N, C}`."""
+struct Variable{N}
     n::Int
     Variable{N}(m) where N = (1 <= m <= N) ? new{N}(m) : error("Illegal construction")
 end
 
-struct Branch{N} <: DecisionTree{N}
+"""Decision tree for `N` features and `C` classes, consisting of `Classification`s and `Desicion`s."""
+abstract type DecisionTree{N, C} end
+
+struct Classification{N, C} <: DecisionTree{N, C}
+    index::Int
+    # label
+    Classification{N, C}(m) where {N, C} =
+        (1 <= m <= C) ? new{N, C}(m) : error("Illegal construction")
+end
+
+struct Decision{N, C} <: DecisionTree{N, C}
     conditions::Dict{Variable{N}, Float64}
     threshold::Float64
-    iftrue::DecisionTree{N}
-    iffalse::DecisionTree{N}
+    iftrue::DecisionTree{N, C}
+    iffalse::DecisionTree{N, C}
     
-    Branch{N}(c, t, ift::DecisionTree{N}, iff::DecisionTree{N}) where N = new{N}(c, t, ift, iff)
-    Branch(c, t, ift::DecisionTree{N}, iff::DecisionTree{N}) where N = new{N}(c, t, ift, iff)
+    Decision{N, C}(c, t, ift::DecisionTree{N, C}, iff::DecisionTree{N, C}) where {N, C} =
+        new{N, C}(c, t, ift, iff)
+    Decision(c, t, ift::DecisionTree{N, C}, iff::DecisionTree{N, C}) where {N, C} =
+        new{N, C}(c, t, ift, iff)
 end
+
+
 
 function unicode_subscript(i)
     @assert 0 ≤ i ≤ 9
@@ -28,27 +40,31 @@ function Base.show(io::IO, v::Variable, indent = 0)
     print(io, "x", unicode_subscript(v.n))
 end
 
-function Base.show(io::IO, b::Branch, indent = 0; digits = 2)
+function Base.show(io::IO, c::Classification, indent = 0)
+    print(io, "{", c.index, "}")
+end
+
+function Base.show(io::IO, c::Decision, indent = 0; digits = 2)
     print(io, "if ")
-    if !isempty(b.conditions)
-        sorted_conditions = sort(collect(b.conditions), by = c -> c.first.n)
+    if !isempty(c.conditions)
+        sorted_conditions = sort(collect(c.conditions), by = c -> c.first.n)
         join(io, ("$(round(f, digits)) × $v" for (v, f) in sorted_conditions), " + ")
     else
         print(io, "0.0")
     end
-    print(io, " ≤ ", round(b.threshold, digits), "\n")
+    print(io, " ≤ ", round(c.threshold, digits), "\n")
     print(io, " " ^ (indent + 2), "then ")
-    show(io, b.iftrue, indent + 2)
+    show(io, c.iftrue, indent + 2)
     print(io, "\n", " " ^ (indent + 2), "else ")
-    show(io, b.iffalse, indent + 2)
+    show(io, c.iffalse, indent + 2)
 end
 
 
-treedepth(::Variable) = 1
-treedepth(b::Branch) = 1 + max(treedepth(b.iftrue), max(treedepth(b.iffalse)))
+treedepth(::Classification) = 1
+treedepth(d::Decision) = 1 + max(treedepth(d.iftrue), max(treedepth(d.iffalse)))
 
-treesize(::Variable) = 1
-treesize(b::Branch) = 1 + treesize(b.iftrue) + treesize(b.iffalse)
+treesize(::Classification) = 1
+treesize(d::Decision) = 1 + treesize(d.iftrue) + treesize(d.iffalse)
 
 
 """
@@ -56,16 +72,16 @@ treesize(b::Branch) = 1 + treesize(b.iftrue) + treesize(b.iffalse)
 
 Evaluate the decision tree `t` on a data point, returning a `Variable` indicating the result.
 """
-function decide(value::AbstractVector{Float64}, b::Branch)
-    if dot(normalize_conditions(b.conditions), value) <= b.threshold
-        return decide(value, b.iftrue)
+function decide(value::AbstractVector{Float64}, d::Decision)
+    if dot(normalize_conditions(d.conditions), value) <= d.threshold
+        return decide(value, d.iftrue)
     else
-        return decide(value, b.iffalse)
+        return decide(value, d.iffalse)
     end
 end
 
-function decide(value::AbstractVector{Float64}, v::Variable)
-    return v
+function decide(value::AbstractVector{Float64}, c::Classification)
+    return c
 end
 
 

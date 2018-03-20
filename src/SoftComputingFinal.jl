@@ -12,7 +12,8 @@ include("gp.jl")
 # EXPORTS
 export
     # Basic tree representation etc.
-    DecisionTree, Variable, Branch, treedepth, treesize, decide, normalize_conditions,
+    DecisionTree, Decision, Classification, Variable,
+    treedepth, treesize, decide, normalize_conditions,
     randomsplit, randomchild,
     # Sampling
     SplitSampler, RampedSplitSampler, BoltzmannSampler,

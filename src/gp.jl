@@ -1,8 +1,8 @@
 using LearningStrategies
 import LearningStrategies: update!
 
-struct GPModel{N}
-    population::Vector{DecisionTree{N}}
+struct GPModel{N, C}
+    population::Vector{DecisionTree{N, C}}
     fitness::Function
     fitness_values::Vector
 end
@@ -10,10 +10,10 @@ end
 GPModel(population, fitness) = GPModel(population, fitness, fitness.(population))
 
 
-struct GPModelSolver{N} <: LearningStrategy
+struct GPModelSolver{N, C} <: LearningStrategy
     tournament_size::Int
     mutation_probability::Float64
-    mutation_sampler::TreeSampler{N}
+    mutation_sampler::TreeSampler{N, C}
 end
 
 
@@ -68,7 +68,7 @@ function update!(model, s::GPModelSolver)
 end
 
 
-function rungp{N}(fitness, psize::Int, sampler::TreeSampler{N}, maxiter::Int;
+function rungp{N, C}(fitness, psize::Int, sampler::TreeSampler{N, C}, maxiter::Int;
                   tracer = Tracer(Void, (m, i) -> nothing, typemax(Int)))
     population = rand(sampler, psize)
     
@@ -83,6 +83,6 @@ end
 
 function testgp(N)
     tracer = Tracer(Int, (m, i) -> maximum(m.fitness_values))
-    pop, tracer = rungp(treesize, 20, BoltzmannSampler{4}(10, 20), N, tracer = tracer)
+    pop, tracer = rungp(treesize, 20, BoltzmannSampler{4, 2}(10, 20), N, tracer = tracer)
     collect(tracer)
 end

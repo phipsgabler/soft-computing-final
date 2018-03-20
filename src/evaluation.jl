@@ -53,17 +53,22 @@ function kfolds(n::Integer, k::Integer = 5)
 end
 
 
-function split_dataset(df::DataFrame)
-    convert(Matrix{Float64}, df[1:end-1]), df[end]
+function prepare_dataset{N, C}(df::DataFrame, ::Type{Val{N}}, ::Type{Val{C}})
+    features = convert(Matrix{Float64}, df[1:end-1])
+    classes = recode(df[end], map(=>,
+                                  levels(df[end]),
+                                  Classification{N, C}.(1:C))...)
+
+    features, classes
 end
 
 
-function create_fitness{N}(data, ::Type{Val{N}};
-                           size_penalty::Float64 = 0.0, depth_penalty::Float64 = 0.0)
-    features, classes = split_dataset(data)
+function create_fitness{N, C}(data, Vn::Type{Val{N}}, Vc::Type{Val{C}};
+                              size_penalty::Float64 = 0.0, depth_penalty::Float64 = 0.0)
+    features, classes = prepare_dataset(data, Vn, Vc)
     
     
-    function fitness(tree::DecisionTree{N})
+    function fitness(tree::DecisionTree{N, C})
         classify(d) = decide(d, tree)
         predictions = squeeze(mapslices(classify, features, 2), 2) # TODO: work on transposed matrix?
         penalty = size_penalty * treesize(tree) + depth_penalty * treedepth(tree)
