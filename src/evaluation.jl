@@ -8,9 +8,9 @@ the total number is returned.
 
 Adapted from https://github.com/JuliaML/MLMetrics.jl/blob/c03435006ab64f84376835ad588d9cbf546da506/src/classification/multiclass.jl#L194.
 """
-function accuracy(target::AbstractVector,
-                  output::AbstractVector;
-                  normalize = true)
+function accuracy{T}(target::AbstractVector{T},
+                     output::AbstractVector{T};
+                     normalize = true)
     @assert length(target) == length(output)
     correct = 0
     
@@ -55,9 +55,7 @@ end
 
 function prepare_dataset{N, C}(df::DataFrame, ::Type{Val{N}}, ::Type{Val{C}})
     features = convert(Matrix{Float64}, df[1:end-1])
-    classes = recode(df[end], map(=>,
-                                  levels(df[end]),
-                                  Classification{N, C}.(1:C))...)
+    classes = Classification{N, C}.(getfield.(df[end], :level))
 
     features, classes
 end
@@ -67,17 +65,20 @@ function create_fitness{N, C}(data, Vn::Type{Val{N}}, Vc::Type{Val{C}};
                               size_penalty::Float64 = 0.0, depth_penalty::Float64 = 0.0)
     features, classes = prepare_dataset(data, Vn, Vc)
     
-    
     function fitness(tree::DecisionTree{N, C})
         classify(d) = decide(d, tree)
         predictions = squeeze(mapslices(classify, features, 2), 2) # TODO: work on transposed matrix?
         penalty = size_penalty * treesize(tree) + depth_penalty * treedepth(tree)
-        accuracy(predictions, data[N+1]) + penalty
+        accuracy(predictions, classes) + penalty
     end
 
     fitness
 end
 
-# glass = SoftComputingFinal.load_glass();
-# t = rand(SoftComputingFinal.BoltzmannSampler{9}(10, 20));
-# fitness = SoftComputingFinal.create_fitness(glass, Val{9})
+
+function testfitness()
+    glass = load_glass();
+    fitness = create_fitness(glass, Val{9}, Val{7})
+    tree = rand(BoltzmannSampler{9, 7}(10, 20));
+    fitness(tree)
+end
