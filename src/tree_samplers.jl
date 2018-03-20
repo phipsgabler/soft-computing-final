@@ -34,7 +34,8 @@ randconditions(treetype::Type{DecisionTree{N}} where {N}, n; crange = (-10, 10))
 abstract type TreeSampler{N} end
 
 Base.rand(sampler::TreeSampler) = rand(Base.GLOBAL_RNG, sampler)
-Base.rand(rng::AbstractRNG, sampler::TreeSampler, n) = [rand(rng, sampler) for _ = 1:n]
+Base.rand{N}(rng::AbstractRNG, sampler::TreeSampler{N}, n) =
+    DecisionTree{N}[rand(rng, sampler) for _ = 1:n]
 Base.rand(sampler::TreeSampler, n) = rand(Base.GLOBAL_RNG, sampler, n)
 
 
