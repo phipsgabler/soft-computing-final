@@ -2,18 +2,12 @@ using LearningStrategies
 import LearningStrategies: update!
 
 struct GPModel{N}
-    population::Vector{Union{Variable{N}, Branch{N}}}
-    fitness
-    fitness_values
-
-    GPModel{N}(population::AbstractVector{<:DecisionTree{N}},
-               fitness, fitness_values) where N =
-        new{N}(population, fitness, fitness_values)
+    population::Vector{DecisionTree{N}}
+    fitness::Function
+    fitness_values::Vector
 end
 
-GPModel(population::AbstractVector{<:DecisionTree{N}}, fitness) where N =
-    GPModel{N}(population, fitness, fitness.(population))
-
+GPModel(population, fitness) = GPModel(population, fitness, fitness.(population))
 
 
 struct GPModelSolver{N} <: LearningStrategy
@@ -21,8 +15,6 @@ struct GPModelSolver{N} <: LearningStrategy
     mutation_probability::Float64
     mutation_sampler::TreeSampler{N}
 end
-
-GPModelSolver(t, pc, pm, ms::TreeSampler{N}) where N = GPModelSolver{N}(t, pc, pm, ms)
 
 
 function selection(parents, parent_fitnesses, k)
@@ -76,15 +68,21 @@ function update!(model, s::GPModelSolver)
 end
 
 
-
-function rungp{N}(fitness, psize::Int, sampler::TreeSampler{N}, maxiter::Int)
+function rungp{N}(fitness, psize::Int, sampler::TreeSampler{N}, maxiter::Int;
+                  tracer = Tracer(Void, (m, i) -> nothing, typemax(Int)))
     population = rand(sampler, psize)
-    tracing_max = Tracer(DecisionTree{N}, (m, i) -> m.population[indmax(m.fitness_values)])
     
     learn!(GPModel(population, fitness),
            strategy(GPModelSolver(7, 0.5, sampler), # use log(size) / 2 for mutation sampler?
                     Verbose(MaxIter(maxiter)),
-                    tracing_max))
+                    tracer))
 
-    return population, collect(tracing_max)
+    return population, tracer
+end
+
+
+function testgp(N)
+    tracer = Tracer(Int, (m, i) -> maximum(m.fitness_values))
+    pop, tracer = rungp(treesize, 20, BoltzmannSampler{4}(10, 20), N, tracer = tracer)
+    collect(tracer)
 end
