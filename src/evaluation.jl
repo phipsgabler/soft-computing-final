@@ -42,12 +42,13 @@ function kfolds(n::Integer, k::Integer = 5)
     for i = 1:(n % k)
         sizes[i] = sizes[i] + 1
     end
+    
     # Compute start offset for each fold
     offsets = cumsum(sizes) .- sizes .+ 1
     # Compute the validation indices using the offsets and sizes
-    val_indices = map((o,s)->(o:o+s-1), offsets, sizes)
+    val_indices = map((o, s) -> (o:o+s-1), offsets, sizes)
     # The train indices are then the indicies not in validation
-    train_indices = map(idx->setdiff(1:n,idx), val_indices)
+    train_indices = map(idx -> setdiff(1:n, idx), val_indices)
     # We return a tuple of arrays
     train_indices, val_indices
 end
