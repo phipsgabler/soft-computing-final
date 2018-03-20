@@ -1,3 +1,5 @@
+using DataFrames
+
 """
     accuracy(target, output; normalize = true)
 
@@ -49,3 +51,28 @@ function kfolds(n::Integer, k::Integer = 5)
     # We return a tuple of arrays
     train_indices, val_indices
 end
+
+
+function split_dataset(df::DataFrame)
+    convert(Matrix{Float64}, df[1:end-1]), df[end]
+end
+
+
+function create_fitness{N}(data, ::Type{Val{N}};
+                           size_penalty::Float64 = 0.0, depth_penalty::Float64 = 0.0)
+    features, classes = split_dataset(data)
+    
+    
+    function fitness(tree::DecisionTree{N})
+        classify(d) = decide(d, tree)
+        predictions = squeeze(mapslices(classify, features, 2), 2) # TODO: work on transposed matrix?
+        penalty = size_penalty * treesize(tree) + depth_penalty * treedepth(tree)
+        accuracy(predictions, data[N+1]) + penalty
+    end
+
+    fitness
+end
+
+# glass = SoftComputingFinal.load_glass();
+# t = rand(SoftComputingFinal.BoltzmannSampler{9}(10, 20));
+# fitness = SoftComputingFinal.create_fitness(glass, Val{9})

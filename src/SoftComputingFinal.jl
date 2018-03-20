@@ -1,6 +1,7 @@
 module SoftComputingFinal
 
 include("decision_trees.jl")
+include("evaluation.jl")
 include("data.jl")
 include("tree_samplers.jl")
 include("splitting.jl")

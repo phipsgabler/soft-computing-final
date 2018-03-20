@@ -56,7 +56,7 @@ treesize(b::Branch) = 1 + treesize(b.iftrue) + treesize(b.iffalse)
 
 Evaluate the decision tree `t` on a data point, returning a `Variable` indicating the result.
 """
-function decide{N}(value::StaticVector{N, Float64}, b::Branch{N})
+function decide(value::AbstractVector{Float64}, b::Branch)
     if dot(normalize_conditions(b.conditions), value) <= b.threshold
         return decide(value, b.iftrue)
     else
@@ -64,7 +64,7 @@ function decide{N}(value::StaticVector{N, Float64}, b::Branch{N})
     end
 end
 
-function decide{N}(value::StaticVector{N, Float64}, v::Variable{N})
+function decide(value::AbstractVector{Float64}, v::Variable)
     return v
 end
 
