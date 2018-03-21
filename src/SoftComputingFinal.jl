@@ -7,7 +7,7 @@ include("tree_samplers.jl")
 include("splitting.jl")
 include("gp.jl")
 
-# see: https://github.com/bensadeghi/DecisionTree.jl
+# For comparison, see: https://github.com/bensadeghi/DecisionTree.jl
 
 # EXPORTS
 export
@@ -23,6 +23,3 @@ export
     rungp
 
 end # module
-
-
-# workspace(); include("SoftComputingFinal.jl"); using SoftComputingFinal
