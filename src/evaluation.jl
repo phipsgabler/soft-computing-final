@@ -57,29 +57,23 @@ end
 function prepare_dataset{N, C}(df::DataFrame, ::Type{Val{N}}, ::Type{Val{C}})
     features = convert(Matrix{Float64}, df[1:end-1])
     classes = Classification{N, C}.(getfield.(df[end], :level))
-
     features, classes
 end
 
 
 function create_fitness{N, C}(data, Vn::Type{Val{N}}, Vc::Type{Val{C}};
                               size_penalty::Float64 = 0.0, depth_penalty::Float64 = 0.0)
-    features, classes = prepare_dataset(data, Vn, Vc)
-    
-    function fitness(tree::DecisionTree{N, C})
-        classify(d) = decide(d, tree)
-        predictions = squeeze(mapslices(classify, features, 2), 2) # TODO: work on transposed matrix?
-        penalty = size_penalty * treesize(tree) + depth_penalty * treedepth(tree)
-        accuracy(predictions, classes) + penalty
+    features′, classes = prepare_dataset(data, Vn, Vc)
+    features = transpose(features′) # more efficient to iterate along columns
+
+    function fitness(tree::DecisionTree{N, C}, sp, dp)
+        correct = sum(eachindex(classes)) do i
+            classes[i] == decide(view(features, :, i), tree)
+        end
+        
+        penalty = sp * treesize(tree) + dp * treedepth(tree)        
+        (correct - penalty) / length(classes)
     end
 
-    fitness
-end
-
-
-function testfitness()
-    glass = load_glass();
-    fitness = create_fitness(glass, Val{9}, Val{7})
-    tree = rand(BoltzmannSampler{9, 7}(10, 20));
-    fitness(tree)
+    (t -> fitness(t, size_penalty, depth_penalty)), (t -> fitness(t, 0.0, 0.0))
 end
