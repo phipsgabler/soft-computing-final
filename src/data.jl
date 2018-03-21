@@ -2,6 +2,8 @@ using DataFrames
 using CSV
 using CategoricalArrays
 
+datafile(filename) = joinpath(Pkg.dir("SoftComputingFinal"), "data", filename)
+
 # Glass identification:
 # 1. Id number: 1 to 214
 # 2. RI: refractive index
@@ -23,7 +25,7 @@ using CategoricalArrays
 # -- 7 headlamps
 
 function load_glass()
-    glass = CSV.read("../data/glass-identification.data",
+    glass = CSV.read(datafile("glass-identification.data"),
                      header = [:id, :ri, :na, :mg, :al, :si, :k, :ca, :ba, :fe, :type],
                      types = Dict(11 => String))
     
@@ -51,7 +53,7 @@ end
 # The 35th attribute is either "good" or "bad" evidence
 
 function load_ionosphere()
-    ionosphere = CSV.read("../data/ionosphere.data",
+    ionosphere = CSV.read(datafile("ionosphere.data"),
                           header = [:id, [Symbol("x", i) for i = 1:34]..., :evidence],
                           types = Dict(2 => Float64, 3 => Float64))
     recode!(ionosphere[:evidence], "g" => "good", "b" => "bad")
@@ -98,7 +100,7 @@ end
 #    Classes:  brickface, sky, foliage, cement, window, path, grass.
 
 function load_image_segmentation()
-    image_segmentation = CSV.read("../data/image-segmentation.data",
+    image_segmentation = CSV.read(datafile("image-segmentation.data"),
                                   header = [:id,
                                             :region_centroid_col,
                                             :region_centroid_row,
@@ -127,6 +129,17 @@ function load_image_segmentation()
 
     return image_segmentation
 end
+
+
+# Linearly separable 2D data set from https://github.com/cuekoo/Binary-classification-dataset
+
+function load_testdata()
+    testdata = CSV.read(datafile("testdata.data"),
+                        header = [:x, :y, :class])
+    categorical!(testdata, :class)
+end
+
+
 
 function check_loading(df)
     display(names(df))
