@@ -1,13 +1,18 @@
 using LearningStrategies
 import LearningStrategies: update!
 
-struct GPModel{N, C}
-    population::Vector{DecisionTree{N, C}}
+mutable struct GPModel{N, C}
     fitness::Function
-    fitness_values::Vector
+    population::Vector{DecisionTree{N, C}}
+    cache::Vector{DecisionTree{N, C}}
+    population_fitnesses::Vector{Float64}
+    cache_fitnesses::Vector{Float64}
 end
 
-GPModel(population, fitness) = GPModel(population, fitness, fitness.(population))
+function GPModel(fitness, population)
+    fitnesses = fitness.(population)
+    GPModel(fitness, population, similar(population), fitnesses, similar(fitnesses))
+end
 
 
 struct GPModelSolver{N, C} <: LearningStrategy
@@ -46,43 +51,40 @@ end
 
 function update!(model, s::GPModelSolver)
     parents = model.population
-    fitness_values = model.fitness_values
+    children = model.cache
+    parent_fitnesses = model.population_fitnesses
+    child_fitnesses = model.cache_fitnesses
     fitness = model.fitness
+    
     k = s.tournament_size
     pₘ = s.mutation_probability
     ms = s.mutation_sampler
 
     # breed
-    # TODO paralleize this
-    children = similar(parents)
-    for i in eachindex(children)
-        p₁ = selection(parents, fitness_values, k)
-        p₂ = selection(parents, fitness_values, k)
+    for i in eachindex(children, child_fitnesses)
+        p₁ = selection(parents, parent_fitnesses, k)
+        p₂ = selection(parents, parent_fitnesses, k)
         child = crossover(p₁, p₂)
         children[i] = mutate(child, pₘ, ms)
+        child_fitnesses[i] = fitness(child)
     end
 
-    # update
-    parents .= children
-    fitness_values .= fitness.(parents) # TODO: pmap this!
+    # update: swap actual values with caches
+    model.population = children
+    model.population_fitnesses = child_fitnesses
+    model.cache = parents
+    model.cache_fitnesses = parent_fitnesses
 end
 
 
 function rungp{N, C}(fitness, psize::Int, sampler::TreeSampler{N, C}, maxiter::Int;
-                  tracer = Tracer(Void, (m, i) -> nothing, typemax(Int)))
-    population = rand(sampler, psize)
+                     tracer = Tracer(Void, (m, i) -> nothing, typemax(Int)),
+                     tournament_size = 7, mutation_rate = 0.5)
+    initial_population = rand(sampler, psize)
+    model = GPModel(float ∘ fitness, initial_population)
+    solver = GPModelSolver(tournament_size, mutation_rate, sampler)
     
-    learn!(GPModel(population, fitness),
-           strategy(GPModelSolver(7, 0.5, sampler), # use log(size) / 2 for mutation sampler?
-                    Verbose(MaxIter(maxiter)),
-                    tracer))
+    learn!(model, strategy(solver, Verbose(MaxIter(maxiter)), tracer))
 
-    return population, tracer
-end
-
-
-function testgp(N)
-    tracer = Tracer(Int, (m, i) -> maximum(m.fitness_values))
-    pop, tracer = rungp(treesize, 20, BoltzmannSampler{4, 2}(10, 20), N, tracer = tracer)
-    collect(tracer)
+    return model.population, tracer
 end
