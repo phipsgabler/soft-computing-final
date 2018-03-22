@@ -187,7 +187,7 @@ function boltzmann_ub{N, C}(rng::AbstractRNG, sampler::BoltzmannSampler{N, C}, c
         return Nullable{DecisionTree{N, C}}(), cursize
     elseif rand(rng) ≤ 0.5      # generate leaf
         return Nullable{DecisionTree{N, C}}(rand(rng, Classification{N, C})), cursize
-    else                        # try generating a branch -- if it's size is small enough
+    else                        # try generating a branch -- if its size is small enough
         # try generating children, or immediately fail
         true_children, cursize = boltzmann_ub(rng, sampler, cursize + 1)
         isnull(true_children) && return Nullable{DecisionTree{N, C}}(), cursize

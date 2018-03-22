@@ -54,17 +54,11 @@ function kfolds(n::Integer, k::Integer = 5)
 end
 
 
-function prepare_dataset{N, C}(df::DataFrame, ::Type{Val{N}}, ::Type{Val{C}})
-    features = convert(Matrix{Float64}, df[1:end-1])
-    classes = Classification{N, C}.(getfield.(df[end], :level))
-    features, classes
-end
-
-
 function create_fitness{N, C}(data, Vn::Type{Val{N}}, Vc::Type{Val{C}};
                               size_penalty::Float64 = 0.0, depth_penalty::Float64 = 0.0)
-    features′, classes = prepare_dataset(data, Vn, Vc)
-    features = transpose(features′) # more efficient to iterate along columns
+    # it is more efficient to iterate along columns
+    features = convert(Matrix{Float64}, df[1:end-1]) |> transpose
+    classes = Classification{N, C}.(getfield.(df[end], :level))
 
     function fitness(tree::DecisionTree{N, C}, sp, dp)
         correct = sum(eachindex(classes)) do i
