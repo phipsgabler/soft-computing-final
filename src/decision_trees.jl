@@ -72,15 +72,20 @@ treesize(d::Decision) = 1 + treesize(d.iftrue) + treesize(d.iffalse)
 
 Evaluate the decision tree `t` on a data point, returning a `Variable` indicating the result.
 """
-function decide(value::AbstractVector{Float64}, d::Decision)
-    if dot(normalize_conditions(d.conditions), value) <= d.threshold
-        return decide(value, d.iftrue)
+function decide(datapoint::AbstractVector{Float64}, d::Decision)
+    combination = 0.0
+    for (v, λ) in d.conditions
+        combination += λ * datapoint[v.n]
+    end
+        
+    if combination <= d.threshold
+        return decide(datapoint, d.iftrue)
     else
-        return decide(value, d.iffalse)
+        return decide(datapoint, d.iffalse)
     end
 end
 
-function decide(value::AbstractVector{Float64}, c::Classification)
+function decide(::AbstractVector{Float64}, c::Classification)
     return c
 end
 
