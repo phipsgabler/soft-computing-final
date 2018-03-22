@@ -61,7 +61,7 @@ end
 
 
 treedepth(::Classification) = 1
-treedepth(d::Decision) = 1 + max(treedepth(d.iftrue), max(treedepth(d.iffalse)))
+treedepth(d::Decision) = 1 + max(treedepth(d.iftrue), treedepth(d.iffalse))
 
 treesize(::Classification) = 1
 treesize(d::Decision) = 1 + treesize(d.iftrue) + treesize(d.iffalse)
