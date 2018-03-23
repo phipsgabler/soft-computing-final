@@ -47,7 +47,7 @@ const TEST_RNG = MersenneTwister(12345678)
         @test s == sizes[i]
 
         
-        newt, chunk = randomsplit(TEST_RNG, forest[i]) do chunk
+        newt, chunk = randsplit(TEST_RNG, forest[i]) do chunk
             Classification{3, 3}(3)
         end
         @test treesize(newt) - 1 == s - treesize(chunk)

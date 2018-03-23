@@ -47,7 +47,7 @@ function (continuation::Cont{N, C})(k::Function) where {N, C}
 end
 
 
-function randomsplit_impl{N, C}(rng::AbstractRNG, t::Classification{N, C}, n::Int,
+function randsplit_impl{N, C}(rng::AbstractRNG, t::Classification{N, C}, n::Int,
                                 parent_context::Context{N, C}, continuation::Cont{N, C})
     n += 1
     if rand() ≤ 1/n
@@ -57,12 +57,12 @@ function randomsplit_impl{N, C}(rng::AbstractRNG, t::Classification{N, C}, n::In
     end
 end
 
-function randomsplit_impl{N, C}(rng::AbstractRNG, t::Decision{N, C}, n,
+function randsplit_impl{N, C}(rng::AbstractRNG, t::Decision{N, C}, n,
                                 parent_context::Context{N, C}, continuation::Cont{N, C})
-    c1, n = randomsplit_impl(rng, t.iftrue, n,
+    c1, n = randsplit_impl(rng, t.iftrue, n,
                              LeftContext{N, C}(t.conditions, t.threshold, t.iffalse, parent_context),
                              continuation)
-    c2, n = randomsplit_impl(rng, t.iffalse, n,
+    c2, n = randsplit_impl(rng, t.iffalse, n,
                              RightContext{N, C}(t.conditions, t.threshold, t.iftrue, parent_context),
                              c1)
     
@@ -75,24 +75,24 @@ function randomsplit_impl{N, C}(rng::AbstractRNG, t::Decision{N, C}, n,
 end
 
 """
-    randomsplit(action, t::DecisionTree)
+    randsplit(action, t::DecisionTree)
 
 Select uniformly at random a point to split `t`, then replace the subtree `s` by `action(s)`. 
 Returns both the new tree and the replaced subtree.
 """
-function randomsplit{N, C}(action, rng::AbstractRNG, t::DecisionTree{N, C})
+function randsplit{N, C}(action, rng::AbstractRNG, t::DecisionTree{N, C})
     # Uses reservoir samling of continuations, see: https://stackoverflow.com/a/3272490/1346276.
     default_context = NoContext{N, C}()
     default_continuation = Cont{N, C}(default_context, t)
-    cont, _ = randomsplit_impl(rng, t, 0, default_context, default_continuation)
+    cont, _ = randsplit_impl(rng, t, 0, default_context, default_continuation)
     cont(action)
 end
 
-randomsplit{N, C}(action, t::DecisionTree{N, C}) = randomsplit(action, Base.GLOBAL_RNG, t)
+randsplit{N, C}(action, t::DecisionTree{N, C}) = randsplit(action, Base.GLOBAL_RNG, t)
 
 """
-    randomchild(t::DecisionTree)
+    randchild(t::DecisionTree)
 
 Select uniformly at random a subtree of `t`.
 """
-randomchild{N, C}(t::DecisionTree{N, C}) = randomsplit(identity, t)[2]
+randchild{N, C}(t::DecisionTree{N, C}) = randsplit(identity, t)[2]

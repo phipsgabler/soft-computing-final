@@ -29,8 +29,8 @@ end
 
 function crossover(parent₁, parent₂)
     # choosing a random `chunk` from `parent₂` and splice it somewhere into `parent₁`
-    newtree, _ = randomsplit(parent₁) do _
-        randomchild(parent₂)
+    newtree, _ = randsplit(parent₁) do _
+        randchild(parent₂)
     end
 
     return newtree
@@ -38,7 +38,7 @@ end
 
 function mutate(individual, pₘ, mutation_sampler)
     if rand() ≤ pₘ
-        newtree, chunk = randomsplit(individual) do _
+        newtree, chunk = randsplit(individual) do _
             # ignore chunk and replace by random stuff
             rand(mutation_sampler)
         end

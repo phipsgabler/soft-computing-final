@@ -14,7 +14,7 @@ export
     # Basic tree representation etc.
     DecisionTree, Decision, Classification, Variable,
     treedepth, treesize, decide, normalize_conditions,
-    randomsplit, randomchild,
+    randsplit, randchild,
     # Sampling
     SplitSampler, RampedSplitSampler, BoltzmannSampler,
     # Data stuff
