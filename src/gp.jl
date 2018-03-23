@@ -16,34 +16,55 @@ end
 
 
 struct GPModelSolver{N, C} <: LearningStrategy
+    max_depth::Int
     tournament_size::Int
+    crossover_probability::Float64
     mutation_probability::Float64
     mutation_sampler::TreeSampler{N, C}
+    rng::AbstractRNG
 end
 
 
-function selection(parents, parent_fitnesses, k)
-    candidates = rand(eachindex(parents, parent_fitnesses), k)
+function selection(parents, parent_fitnesses, s)
+    candidates = rand(eachindex(parents, parent_fitnesses), s.tournament_size)
     parents[indmax(parent_fitnesses[candidates])]
 end
 
-function crossover(parent₁, parent₂)
-    # choosing a random `chunk` from `parent₂` and splice it somewhere into `parent₁`
-    newtree, _ = randsplit(parent₁) do _
-        randchild(parent₂)
-    end
+function mate(p, q, s)
+    # Choose a random subtree from `p` and replace it by a random child of `q`
+    newtree, _ = randsplit((subtree) -> randchild(q), s.rng, p)
+    newtree
 
-    return newtree
+    newtree
 end
 
-function mutate(individual, pₘ, mutation_sampler)
-    if rand() ≤ pₘ
-        newtree, chunk = randsplit(individual) do _
-            # ignore chunk and replace by random stuff
-            rand(mutation_sampler)
+function crossover(parent₁, parent₂, s)
+    if rand(s.rng) ≤ s.crossover_probability
+        candidate = mate(parent₁, parent₂, s)
+        while treedepth(candidate) > s.max_depth
+            candidate = mate(parent₁, parent₂, s)
         end
 
-        return newtree
+        return candidate
+    else
+        return rand(s.rng, [parent₁, parent₂])
+    end
+end
+
+function splice(i, s)
+    # Choose a random subtree from `p` and put in a random tree
+    newtree, _ = randsplit((subtree) -> rand(s.rng, s.mutation_sampler), i)
+    newtree
+end
+
+function mutate(individual, s)
+    if rand(s.rng) ≤ s.mutation_probability
+        candidate = splice(individual, s)
+        while treedepth(candidate) > s.max_depth
+            candidate = splice(individual, s)
+        end
+
+        return candidate
     else
         return individual
     end
@@ -55,17 +76,13 @@ function update!(model, s::GPModelSolver)
     parent_fitnesses = model.population_fitnesses
     child_fitnesses = model.cache_fitnesses
     fitness = model.fitness
-    
-    k = s.tournament_size
-    pₘ = s.mutation_probability
-    ms = s.mutation_sampler
 
     # breed
     for i in eachindex(children, child_fitnesses)
-        p₁ = selection(parents, parent_fitnesses, k)
-        p₂ = selection(parents, parent_fitnesses, k)
-        child = crossover(p₁, p₂)
-        children[i] = mutate(child, pₘ, ms)
+        p₁ = selection(parents, parent_fitnesses, s)
+        p₂ = selection(parents, parent_fitnesses, s)
+        child = crossover(p₁, p₂, s)
+        children[i] = mutate(child, s)
         child_fitnesses[i] = fitness(child)
     end
 
@@ -79,12 +96,16 @@ end
 
 function rungp{N, C}(fitness, psize::Int, sampler::TreeSampler{N, C}, maxiter::Int;
                      tracer = Tracer(Void, (m, i) -> nothing, typemax(Int)),
-                     tournament_size = 7, mutation_rate = 0.5)
+                     breaker = Breaker((m, i) -> false),
+                     max_depth = 20, tournament_size = 7,
+                     mutation_rate = 0.5, crossover_rate = 0.5,
+                     depth_penalty = 2.0, size_penalty = 0.5,
+                     rng = Base.GLOBAL_RNG)
     initial_population = rand(sampler, psize)
     model = GPModel(float ∘ fitness, initial_population)
-    solver = GPModelSolver(tournament_size, mutation_rate, sampler)
+    solver = GPModelSolver(max_depth, tournament_size, crossover_rate, mutation_rate, sampler, rng)
     
-    learn!(model, strategy(solver, Verbose(MaxIter(maxiter)), tracer))
+    learn!(model, strategy(solver, Verbose(MaxIter(maxiter)), tracer, breaker))
 
     return model.population, tracer
 end
