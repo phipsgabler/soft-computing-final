@@ -29,34 +29,28 @@ struct Decision{N, C} <: DecisionTree{N, C}
         new{N, C}(c, t, ift, iff)
 end
 
-
-
-function unicode_subscript(i)
-    @assert 0 ≤ i ≤ 9
-    '\u2080' + i
-end
-
 function Base.show(io::IO, v::Variable, indent = 0)
-    print(io, "x", unicode_subscript(v.n))
+    print(io, "x")
+    join(io, map(d -> '\u2080' + d, digits(v.n)) |> reverse)
 end
 
 function Base.show(io::IO, c::Classification, indent = 0)
     print(io, "{", c.index, "}")
 end
 
-function Base.show(io::IO, c::Decision, indent = 0; digits = 2)
+function Base.show(io::IO, d::Decision, indent = 0; digits = 2)
     print(io, "if ")
-    if !isempty(c.conditions)
-        sorted_conditions = sort(collect(c.conditions), by = c -> c.first.n)
+    if !isempty(d.conditions)
+        sorted_conditions = sort(collect(d.conditions), by = c -> c.first.n)
         join(io, ("$(round(f, digits)) × $v" for (v, f) in sorted_conditions), " + ")
     else
         print(io, "0.0")
     end
-    print(io, " ≤ ", round(c.threshold, digits), "\n")
+    print(io, " ≤ ", round(d.threshold, digits), "\n")
     print(io, " " ^ (indent + 2), "then ")
-    show(io, c.iftrue, indent + 2)
+    show(io, d.iftrue, indent + 2)
     print(io, "\n", " " ^ (indent + 2), "else ")
-    show(io, c.iffalse, indent + 2)
+    show(io, d.iffalse, indent + 2)
 end
 
 
