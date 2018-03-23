@@ -20,7 +20,7 @@ function testgp(N)
     tracer = Tracer(DecisionTree{2, 2}, (m, i) -> m.population[indmax(m.population_fitnesses)])
     # initializer = BoltzmannSampler{2, 2}(1, 10, (-2.0, 2.0))
     initializer = RampedSplitSampler{2, 2}(4, 0.5, 0.5, crange = (-2.0, 2.0))
-    pop, trace = rungp(fitness, 20, initializer, N, tracer = tracer);
+    pop, trace = runssgp(fitness, 20, initializer, N, tracer = tracer, verbose = false)
 
     max_trees = collect(trace)
     best_tree = select(max_trees, 1, by = fitness, rev = true)
@@ -30,4 +30,4 @@ function testgp(N)
     # Dict(:pop => pop, :poptrace => max_trees, :accuracytrace => accuracy.(max_trees))
 end
 
-testgp(50)
+testgp(2000)

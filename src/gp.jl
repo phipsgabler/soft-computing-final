@@ -14,6 +14,17 @@ function GPModel(fitness, population)
     GPModel(fitness, population, similar(population), fitnesses, similar(fitnesses))
 end
 
+mutable struct SSGPModel{N, C}
+    fitness::Function
+    population::Vector{DecisionTree{N, C}}
+    population_fitnesses::Vector{Float64}
+end
+
+function SSGPModel(fitness, population)
+    fitnesses = fitness.(population)
+    SSGPModel(fitness, population, fitnesses)
+end
+
 
 struct GPModelSolver{N, C} <: LearningStrategy
     max_depth::Int
@@ -70,7 +81,8 @@ function mutate(individual, s)
     end
 end
 
-function update!(model, s::GPModelSolver)
+
+function update!(model::GPModel, s::GPModelSolver)
     parents = model.population
     children = model.cache
     parent_fitnesses = model.population_fitnesses
@@ -94,6 +106,27 @@ function update!(model, s::GPModelSolver)
 end
 
 
+function update!(model::SSGPModel, s::GPModelSolver)
+    population = model.population
+    fitnesses = model.population_fitnesses
+    fitness = model.fitness
+
+    # breed
+    p₁ = selection(population, fitnesses, s)
+    p₂ = selection(population, fitnesses, s)
+    child = crossover(p₁, p₂, s)
+    offspring = mutate(child, s)
+    offspring_fitness = fitness(offspring)
+    
+    # replace
+    candidate = indmin(fitnesses)
+    if offspring_fitness ≥ fitnesses[candidate]
+        population[candidate] = offspring
+        fitnesses[candidate] = offspring_fitness
+    end
+end
+
+
 function rungp{N, C}(fitness, psize::Int, sampler::TreeSampler{N, C}, maxiter::Int;
                      tracer = Tracer(Void, (m, i) -> nothing, typemax(Int)),
                      breaker = Breaker((m, i) -> false),
@@ -103,6 +136,22 @@ function rungp{N, C}(fitness, psize::Int, sampler::TreeSampler{N, C}, maxiter::I
                      rng = Base.GLOBAL_RNG, verbose = true)
     initial_population = rand(sampler, psize)
     model = GPModel(float ∘ fitness, initial_population)
+    solver = GPModelSolver(max_depth, tournament_size, crossover_rate, mutation_rate, sampler, rng)
+    iteration_control = verbose ? Verbose(MaxIter(maxiter)) : MaxIter(maxiter)
+    learn!(model, strategy(solver, iteration_control, tracer, breaker))
+
+    return model.population, tracer
+end
+
+function runssgp{N, C}(fitness, psize::Int, sampler::TreeSampler{N, C}, maxiter::Int;
+                       tracer = Tracer(Void, (m, i) -> nothing, typemax(Int)),
+                       breaker = Breaker((m, i) -> false),
+                       max_depth = 20, tournament_size = 7,
+                       mutation_rate = 0.5, crossover_rate = 0.5,
+                       depth_penalty = 2.0, size_penalty = 0.5,
+                       rng = Base.GLOBAL_RNG, verbose = true)
+    initial_population = rand(sampler, psize)
+    model = SSGPModel(float ∘ fitness, initial_population)
     solver = GPModelSolver(max_depth, tournament_size, crossover_rate, mutation_rate, sampler, rng)
     iteration_control = verbose ? Verbose(MaxIter(maxiter)) : MaxIter(maxiter)
     learn!(model, strategy(solver, iteration_control, tracer, breaker))

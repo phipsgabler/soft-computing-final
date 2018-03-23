@@ -20,6 +20,6 @@ export
     # Data stuff
     load_glass, load_ionosphere, load_image_segmentation, load_testdata, create_fitness,
     # Genetic programming
-    rungp
+    rungp, runssgp
 
 end # module
