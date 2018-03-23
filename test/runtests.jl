@@ -52,7 +52,22 @@ const TEST_RNG = MersenneTwister(12345678)
         end
         @test treesize(newt) - 1 == s - treesize(chunk)
     end
+end
 
-    
+@testset "Sampling" begin
+    # SplitSampler
+    split_samples = rand(SplitSampler{10, 3}(5, 1.0, minvars = 2, maxvars = 4), 20)
+    @test all(treedepth(t) ≤ 5 for t in split_samples)
+    @test all(t isa Classification || 2 ≤ length(t.conditions) ≤ 4 for t in split_samples)
+
+    # RampedSplitSampler
+    ramped_split_samples = rand(RampedSplitSampler{10, 3}(5, 0.5, 0.5, minvars = 2, maxvars = 4), 20)
+    @test all(treedepth(t) ≤ 5 for t in ramped_split_samples)
+    @test all(t isa Classification || 2 ≤ length(t.conditions) ≤ 4 for t in ramped_split_samples)
+
+    #BoltzmannSampler
+    boltzmann_samples = rand(BoltzmannSampler{10, 3}(5, 20, minvars = 2, maxvars = 4), 20)
+    @test all(5 ≤ treesize(t) ≤ 20 for t in boltzmann_samples)
+    @test all(t isa Classification || 2 ≤ length(t.conditions) ≤ 4 for t in boltzmann_samples)
 end
 
