@@ -1,4 +1,4 @@
-include("../src/SoftComputingFinal.jl")
+push!(LOAD_PATH,"../src/")
 
 using SoftComputingFinal
 using Base.Test
