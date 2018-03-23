@@ -68,7 +68,7 @@ struct SplitSampler{N, C} <: TreeSampler{N, C}
     end
 end
 
-function randsplit{N, C}(rng::AbstractRNG, sampler::SplitSampler{N, C}, currentdepth)
+function sample_split{N, C}(rng::AbstractRNG, sampler::SplitSampler{N, C}, currentdepth)
     maxdepth = sampler.maxdepth
     split_probability = sampler.split_probability
     minvars, maxvars = sampler.minvars, sampler.maxvars
@@ -80,13 +80,13 @@ function randsplit{N, C}(rng::AbstractRNG, sampler::SplitSampler{N, C}, currentd
     else
         conditions = randconditions(rng, DecisionTree{N, C}, minvars, maxvars, crange)
         threshold = a * rand(rng) + b
-        true_children = randsplit(rng, sampler, currentdepth + 1)
-        false_children = randsplit(rng, sampler, currentdepth + 1)
+        true_children = sample_split(rng, sampler, currentdepth + 1)
+        false_children = sample_split(rng, sampler, currentdepth + 1)
         Decision{N, C}(conditions, threshold, true_children, false_children)
     end
 end
 
-rand{N, C}(rng::AbstractRNG, sampler::SplitSampler{N, C}) = randsplit(rng, sampler, 1)
+rand{N, C}(rng::AbstractRNG, sampler::SplitSampler{N, C}) = sample_split(rng, sampler, 1)
 
 struct RampedSplitSampler{N, C} <: TreeSampler{N, C}
     maxdepth::Int
@@ -112,7 +112,7 @@ struct RampedSplitSampler{N, C} <: TreeSampler{N, C}
     end
 end
 
-function randramped{N, C}(rng::AbstractRNG, sampler::RampedSplitSampler{N, C}, currentdepth)
+function sample_randsplit{N, C}(rng::AbstractRNG, sampler::RampedSplitSampler{N, C}, currentdepth)
     maxdepth = sampler.maxdepth
     split_probability = sampler.split_probability
     rand_portion = sampler.rand_portion
@@ -129,13 +129,13 @@ function randramped{N, C}(rng::AbstractRNG, sampler::RampedSplitSampler{N, C}, c
     else
         conditions = randconditions(rng, DecisionTree{N, C}, minvars, maxvars, crange)
         threshold = a * rand(rng) + b
-        true_children = randramped(rng, sampler, currentdepth + 1)
-        false_children = randramped(rng, sampler, currentdepth + 1)
+        true_children = sample_randsplit(rng, sampler, currentdepth + 1)
+        false_children = sample_randsplit(rng, sampler, currentdepth + 1)
         Decision{N, C}(conditions, threshold, true_children, false_children)
     end
 end
 
-rand{N, C}(rng::AbstractRNG, sampler::RampedSplitSampler{N, C}) = randramped(rng, sampler, 1)
+rand{N, C}(rng::AbstractRNG, sampler::RampedSplitSampler{N, C}) = sample_randsplit(rng, sampler, 1)
 
 
 
@@ -197,7 +197,7 @@ function boltzmann_ub{N, C}(rng::AbstractRNG, sampler::BoltzmannSampler{N, C}, c
     crange = sampler.crange
     a, b = (crange[2] - crange[1]), crange[1]
 
-    if cursize > maxsize        # maximum bound exceeded
+    if cursize ≥ maxsize        # maximum bound exceeded
         return Nullable{DecisionTree{N, C}}(), cursize
     elseif rand(rng) ≤ 0.5      # generate leaf
         return Nullable{DecisionTree{N, C}}(rand(rng, Classification{N, C})), cursize
@@ -219,7 +219,7 @@ end
 
 function Base.rand{N}(rng::AbstractRNG, sampler::BoltzmannSampler{N})
     candidate, size = boltzmann_ub(rng, sampler, 0)
-    while isnull(candidate) || size < sampler.minsize
+    while isnull(candidate) || size ≤ sampler.minsize
         candidate, size = boltzmann_ub(rng, sampler, 0)
     end
 
