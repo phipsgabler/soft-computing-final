@@ -20,7 +20,7 @@ struct GPModelSolver{N, C} <: LearningStrategy
     tournament_size::Int
     crossover_probability::Float64
     mutation_probability::Float64
-    mutation_sampler::TreeSampler{N, C}
+    tree_sampler::TreeSampler{N, C}
     rng::AbstractRNG
 end
 
@@ -52,8 +52,8 @@ function crossover(parent₁, parent₂, s)
 end
 
 function splice(i, s)
-    # Choose a random subtree from `p` and put in a random tree
-    newtree, _ = randsplit((subtree) -> rand(s.rng, s.mutation_sampler), i)
+    # Choose a random subtree from `i` and replace it by a random tree
+    newtree, _ = randsplit((subtree) -> rand(s.rng, s.tree_sampler), i)
     newtree
 end
 
@@ -100,12 +100,12 @@ function rungp{N, C}(fitness, psize::Int, sampler::TreeSampler{N, C}, maxiter::I
                      max_depth = 20, tournament_size = 7,
                      mutation_rate = 0.5, crossover_rate = 0.5,
                      depth_penalty = 2.0, size_penalty = 0.5,
-                     rng = Base.GLOBAL_RNG)
+                     rng = Base.GLOBAL_RNG, verbose = true)
     initial_population = rand(sampler, psize)
     model = GPModel(float ∘ fitness, initial_population)
     solver = GPModelSolver(max_depth, tournament_size, crossover_rate, mutation_rate, sampler, rng)
-    
-    learn!(model, strategy(solver, Verbose(MaxIter(maxiter)), tracer, breaker))
+    iteration_control = verbose ? Verbose(MaxIter(maxiter)) : MaxIter(maxiter)
+    learn!(model, strategy(solver, iteration_control, tracer, breaker))
 
     return model.population, tracer
 end

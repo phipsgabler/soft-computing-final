@@ -23,12 +23,11 @@ function testgp(N)
     pop, trace = rungp(fitness, 20, initializer, N, tracer = tracer);
 
     max_trees = collect(trace)
-    # display(accuracy.(max_trees))
     best_tree = select(max_trees, 1, by = fitness, rev = true)
-    display(best_tree)
-    display(accuracy(best_tree))
-    Dict(:pop => pop, :poptrace => max_trees, :accuracytrace => accuracy.(max_trees))
+    println(best_tree)
+    println(accuracy(best_tree))
+    println(accuracy.(max_trees))
+    # Dict(:pop => pop, :poptrace => max_trees, :accuracytrace => accuracy.(max_trees))
 end
 
-testgp(20);
-
+testgp(50)
