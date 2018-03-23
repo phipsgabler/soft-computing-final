@@ -71,3 +71,17 @@ end
     @test all(t isa Classification || 2 ≤ length(t.conditions) ≤ 4 for t in boltzmann_samples)
 end
 
+@testset "SSGP Integration" begin
+    N = 500
+    data = load_testdata()
+    fitness, accuracy = create_fitness(data, Val{2}, Val{2},
+                                       depth_penalty = 2.0, size_penalty = 0.5)
+
+    initializer = RampedSplitSampler{2, 2}(4, 0.5, 0.5, crange = (-2.0, 2.0))
+    population, _ = runssgp(fitness, 20, initializer, N, verbose = false)
+
+    best_tree = select(population, 1, by = fitness, rev = true)
+    @show α = accuracy(best_tree)
+    @test α > 0.7
+end
+
