@@ -7,7 +7,8 @@ classification trees" (Bot and Langdon, 2000).
 
 ## Data
 
-The `data` folder contains the following three data sets from the UCI Machine Learning Repository:
+The `data` folder contains the following three data sets from the UCI Machine Learning Repository,
+which are used for evaluation in the paper:
 
 - [Glass identification](https://archive.ics.uci.edu/ml/datasets/glass+identification)
 - [Ionosphere](https://archive.ics.uci.edu/ml/datasets/ionosphere)
@@ -18,6 +19,10 @@ The `data` folder contains the following three data sets from the UCI Machine Le
 
 These datasets were retrieved through Jack Dunn's
 [`uci-data`](https://github.com/JackDunnNZ/uci-data) script.
+
+Additionally, there is an artificial two-dimensional, linearly separable data set `testdata.data`,
+which I found on [Github](https://github.com/cuekoo/Binary-classification-dataset) and used for
+testing the implementation.
 
 ## Boltzmann Sampler
 
@@ -61,4 +66,15 @@ which allows to efficiently generate random trees in a given size range.
     url = {http://archive.ics.uci.edu/ml},
     institution = {University of California, Irvine, School of Information and Computer Sciences} 
 } 
+
+
+@thesis{qureshi_evolution_2001,
+	location = {London},
+	title = {The Evolution of Agents},
+	url = {https://www.cl.cam.ac.uk/~jac22/otalks/aqureshi-draft.pdf},
+	institution = {University of London},
+	author = {Qureshi, Mohammad Adil},
+	urldate = {2018-03-23},
+	date = {2001}
+}
 ```
