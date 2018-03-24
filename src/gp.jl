@@ -37,30 +37,34 @@ end
 
 
 function selection(parents, parent_fitnesses, s)
-    candidates = rand(eachindex(parents, parent_fitnesses), s.tournament_size)
+    candidates = rand(s.rng, eachindex(parents, parent_fitnesses), s.tournament_size)
     parents[indmax(parent_fitnesses[candidates])]
 end
 
+
 function mate(p, q, s)
     # Choose a random subtree from `p` and replace it by a random child of `q`
-    newtree, _ = randsplit((subtree) -> randchild(q), s.rng, p)
-    newtree
-
+    newtree, _ = randsplit((subtree) -> randchild(s.rng, q), s.rng, p)
     newtree
 end
 
 function crossover(parent₁, parent₂, s)
-    if rand(s.rng) ≤ s.crossover_probability
+    p = s.crossover_probability
+    r = rand(s.rng)
+    if r ≤ p
         candidate = mate(parent₁, parent₂, s)
         while treedepth(candidate) > s.max_depth
             candidate = mate(parent₁, parent₂, s)
         end
 
         return candidate
-    else
-        return rand(s.rng, [parent₁, parent₂])
+    elseif p < r ≤ (1 - p) / 2
+        parent₁
+    else # (1 - p) / 2 < r ≤ 1
+        parent₂
     end
 end
+
 
 function splice(i, s)
     # Choose a random subtree from `i` and replace it by a random tree
@@ -132,7 +136,7 @@ function rungp{N, C}(fitness, psize::Int, sampler::TreeSampler{N, C}, maxiter::I
                      mutation_rate = 0.5, crossover_rate = 0.5,
                      depth_penalty = 2.0, size_penalty = 0.5,
                      rng = Base.GLOBAL_RNG, verbose = true)
-    initial_population = rand(sampler, psize)
+    initial_population = rand(rng, sampler, psize)
     model = GPModel(float ∘ fitness, initial_population)
     solver = GPModelSolver(max_depth, tournament_size, crossover_rate, mutation_rate, sampler, rng)
     iteration_control = verbose ? Verbose(MaxIter(maxiter)) : MaxIter(maxiter)
@@ -148,7 +152,7 @@ function runssgp{N, C}(fitness, psize::Int, sampler::TreeSampler{N, C}, maxiter:
                        mutation_rate = 0.5, crossover_rate = 0.5,
                        depth_penalty = 2.0, size_penalty = 0.5,
                        rng = Base.GLOBAL_RNG, verbose = true)
-    initial_population = rand(sampler, psize)
+    initial_population = rand(rng, sampler, psize)
     model = SSGPModel(float ∘ fitness, initial_population)
     solver = GPModelSolver(max_depth, tournament_size, crossover_rate, mutation_rate, sampler, rng)
     iteration_control = verbose ? Verbose(MaxIter(maxiter)) : MaxIter(maxiter)

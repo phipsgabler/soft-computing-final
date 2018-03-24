@@ -75,7 +75,7 @@ function randsplit_impl{N, C}(rng::AbstractRNG, t::Decision{N, C}, n,
 end
 
 """
-    randsplit(action, t::DecisionTree)
+    randsplit(action,[ rng,] t::DecisionTree)
 
 Select uniformly at random a point to split `t`, then replace the subtree `s` by `action(s)`. 
 Returns both the new tree and the replaced subtree.
@@ -91,8 +91,9 @@ end
 randsplit{N, C}(action, t::DecisionTree{N, C}) = randsplit(action, Base.GLOBAL_RNG, t)
 
 """
-    randchild(t::DecisionTree)
+    randchild([rng,] t::DecisionTree)
 
 Select uniformly at random a subtree of `t`.
 """
-randchild{N, C}(t::DecisionTree{N, C}) = randsplit(identity, t)[2]
+randchild{N, C}(rng::AbstractRNG, t::DecisionTree{N, C}) = randsplit(identity, rng, t)[2]
+randchild{N, C}(t::DecisionTree{N, C}) = randchild(Base.GLOBAL_RNG, t)
