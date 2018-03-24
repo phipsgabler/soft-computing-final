@@ -151,8 +151,9 @@ function runssgp{N, C}(fitness, psize::Int, sampler::TreeSampler{N, C}, maxiter:
                        max_depth = 20, tournament_size = 7,
                        mutation_rate = 0.5, crossover_rate = 0.5,
                        depth_penalty = 2.0, size_penalty = 0.5,
-                       rng = Base.GLOBAL_RNG, verbose = true)
+                       rng = Base.GLOBAL_RNG, verbose = true, debug = false)
     initial_population = rand(rng, sampler, psize)
+    debug && println("Initialized population")
     model = SSGPModel(float ∘ fitness, initial_population)
     solver = GPModelSolver(max_depth, tournament_size, crossover_rate, mutation_rate, sampler, rng)
     iteration_control = verbose ? Verbose(MaxIter(maxiter)) : MaxIter(maxiter)
