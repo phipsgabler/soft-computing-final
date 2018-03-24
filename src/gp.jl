@@ -118,12 +118,10 @@ function update!(model::SSGPModel, s::GPModelSolver)
     offspring = mutate(child, s)
     offspring_fitness = fitness(offspring)
     
-    # replace
+    # replace worst individual
     candidate = indmin(fitnesses)
-    if offspring_fitness ≥ fitnesses[candidate]
-        population[candidate] = offspring
-        fitnesses[candidate] = offspring_fitness
-    end
+    population[candidate] = offspring
+    fitnesses[candidate] = offspring_fitness
 end
 
 
