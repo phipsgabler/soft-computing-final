@@ -3,16 +3,16 @@ using LearningStrategies
 using SoftComputingFinal
 
 const ValType = Type{Val{T}} where T
-const datasets = Dict{Symbol, Tuple{Function, ValType, ValType}}(
-    :testdata => (load_testdata, Val{2}, Val{2}),
-    :glass => (load_glass, Val{9}, Val{7}),
-    :ionosphere => (load_ionosphere, Val{34}, Val{2}),
-    :segmentation => (load_segmentation, Val{19}, Val{7}))
+const datasets = Dict{String, Tuple{Function, ValType, ValType}}(
+    "testdata" => (load_testdata, Val{2}, Val{2}),
+    "glass" => (load_glass, Val{9}, Val{7}),
+    "ionosphere" => (load_ionosphere, Val{34}, Val{2}),
+    "segmentation" => (load_segmentation, Val{19}, Val{7}))
 
 getsampler(::Type{Val{M}}, ::Type{Val{N}}) where {M, N} =
     RampedSplitSampler{M, N}(6, 0.5, 0.5,
                              crange = (-10.0, 10.0),
-                             maxvars = 3)
+                             maxvars = min(3, M))
 
 function testdataset(name, N)
     popsize = 250
@@ -34,4 +34,16 @@ function testdataset(name, N)
     println(collect(trace))
 end
 
-testdataset(:ionosphere, 100)
+
+function main()
+    if length(ARGS) == 2
+        testdataset(ARGS[1], ARGS[2])
+    elseif length(ARGS) == 1
+        testdataset(ARGS[1], 1000)
+    else
+        error("Usage: $PROGRAM_FILE <dataset> [<generations>]")
+    end
+end
+
+
+main()
