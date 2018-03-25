@@ -27,6 +27,7 @@ end
 
 
 struct GPModelSolver{N, C} <: LearningStrategy
+    min_depth::Int
     max_depth::Int
     tournament_size::Int
     crossover_probability::Float64
@@ -53,7 +54,7 @@ function crossover(parent₁, parent₂, s)
     r = rand(s.rng)
     if r ≤ p
         candidate = mate(parent₁, parent₂, s)
-        while treedepth(candidate) > s.max_depth
+        while !(s.min_depth ≤ treedepth(candidate) ≤ s.max_depth)
             candidate = mate(parent₁, parent₂, s)
         end
 
@@ -75,7 +76,7 @@ end
 function mutate(individual, s)
     if rand(s.rng) ≤ s.mutation_probability
         candidate = splice(individual, s)
-        while treedepth(candidate) > s.max_depth
+        while !(s.min_depth ≤ treedepth(candidate) ≤ s.max_depth)
             candidate = splice(individual, s)
         end
 
@@ -115,30 +116,34 @@ function update!(model::SSGPModel, s::GPModelSolver)
     fitnesses = model.population_fitnesses
     fitness = model.fitness
 
+    for _ = eachindex(population)
     # breed
-    p₁ = selection(population, fitnesses, s)
-    p₂ = selection(population, fitnesses, s)
-    child = crossover(p₁, p₂, s)
-    offspring = mutate(child, s)
-    offspring_fitness = fitness(offspring)
-    
-    # replace worst individual
-    candidate = indmin(fitnesses)
-    population[candidate] = offspring
-    fitnesses[candidate] = offspring_fitness
+        p₁ = selection(population, fitnesses, s)
+        p₂ = selection(population, fitnesses, s)
+        child = crossover(p₁, p₂, s)
+        offspring = mutate(child, s)
+        offspring_fitness = fitness(offspring)
+        
+        # replace worst individual
+        candidate = indmin(fitnesses)
+        population[candidate] = offspring
+        fitnesses[candidate] = offspring_fitness
+    end
 end
 
 
 function rungp{N, C}(fitness, psize::Int, sampler::TreeSampler{N, C}, maxiter::Int;
                      tracer = Tracer(Void, (m, i) -> nothing, typemax(Int)),
                      breaker = Breaker((m, i) -> false),
-                     max_depth = 20, tournament_size = 7,
+                     min_depth = 1, max_depth = 20,
+                     tournament_size = 7,
                      mutation_rate = 0.5, crossover_rate = 0.5,
                      depth_penalty = 2.0, size_penalty = 0.5,
                      rng = Base.GLOBAL_RNG, verbose = true)
     initial_population = rand(rng, sampler, psize)
     model = GPModel(float ∘ fitness, initial_population)
-    solver = GPModelSolver(max_depth, tournament_size, crossover_rate, mutation_rate, sampler, rng)
+    solver = GPModelSolver(min_depth, max_depth, tournament_size, crossover_rate, mutation_rate,
+                           sampler, rng)
     iteration_control = verbose ? Verbose(MaxIter(maxiter)) : MaxIter(maxiter)
     learn!(model, strategy(solver, iteration_control, tracer, breaker))
 
@@ -148,14 +153,16 @@ end
 function runssgp{N, C}(fitness, psize::Int, sampler::TreeSampler{N, C}, maxiter::Int;
                        tracer = Tracer(Void, (m, i) -> nothing, typemax(Int)),
                        breaker = Breaker((m, i) -> false),
-                       max_depth = 20, tournament_size = 7,
+                       min_depth = 1, max_depth = 20,
+                       tournament_size = 7,
                        mutation_rate = 0.5, crossover_rate = 0.5,
                        depth_penalty = 2.0, size_penalty = 0.5,
                        rng = Base.GLOBAL_RNG, verbose = true, debug = false)
     initial_population = rand(rng, sampler, psize)
     debug && println("Initialized population")
     model = SSGPModel(float ∘ fitness, initial_population)
-    solver = GPModelSolver(max_depth, tournament_size, crossover_rate, mutation_rate, sampler, rng)
+    solver = GPModelSolver(min_depth, max_depth, tournament_size, crossover_rate, mutation_rate,
+                           sampler, rng)
     iteration_control = verbose ? Verbose(MaxIter(maxiter)) : MaxIter(maxiter)
     learn!(model, strategy(solver, iteration_control, tracer, breaker))
 
