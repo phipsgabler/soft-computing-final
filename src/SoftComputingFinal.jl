@@ -20,6 +20,8 @@ export
     # Data stuff
     load_glass, load_ionosphere, load_segmentation, load_testdata, create_fitness,
     # Genetic programming
-    rungp, runssgp
+    rungp, runssgp,
+    # Other
+    kfolds
 
 end # module
