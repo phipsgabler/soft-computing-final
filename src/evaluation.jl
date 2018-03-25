@@ -55,8 +55,7 @@ end
 
 
 function create_fitness{N, C}(data::DataFrame, Vn::Type{Val{N}}, Vc::Type{Val{C}};
-                              size_factor::Float64 = 0.0, size_baseline = 20,
-                              depth_factor::Float64 = 0.0, depth_baseline = 5)
+                              size_factor::Float64 = 0.0, depth_factor::Float64 = 0.0)
     # it is more efficient to iterate along columns
     features = convert(Matrix{Float64}, data[1:end-1]) |> transpose
     classes = Classification{N, C}.(getfield.(data[end], :level))
