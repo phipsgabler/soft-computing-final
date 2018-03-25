@@ -55,19 +55,28 @@ end
 
 
 function create_fitness{N, C}(data::DataFrame, Vn::Type{Val{N}}, Vc::Type{Val{C}};
-                              size_penalty::Float64 = 0.0, depth_penalty::Float64 = 0.0)
+                              size_factor::Float64 = 0.0, size_baseline = 20,
+                              depth_factor::Float64 = 0.0, depth_baseline = 5)
     # it is more efficient to iterate along columns
     features = convert(Matrix{Float64}, data[1:end-1]) |> transpose
     classes = Classification{N, C}.(getfield.(data[end], :level))
 
-    function fitness(tree::DecisionTree{N, C}, sp, dp)
+    function fitness(tree::DecisionTree{N, C})
+        correct = sum(eachindex(classes)) do i
+            classes[i] == decide(view(features, :, i), tree)
+        end
+
+        penalty = size_factor * treesize(tree) + depth_factor * treedepth(tree)
+        correct - penalty
+    end
+
+    function accuracy(tree::DecisionTree{N, C})
         correct = sum(eachindex(classes)) do i
             classes[i] == decide(view(features, :, i), tree)
         end
         
-        penalty = sp * treesize(tree) + dp * treedepth(tree)        
-        (correct - penalty) / length(classes)
+        correct / length(classes)
     end
 
-    (t -> fitness(t, size_penalty, depth_penalty)), (t -> fitness(t, 0.0, 0.0))
+    fitness, accuracy
 end

@@ -75,7 +75,8 @@ end
     N = 500
     data = load_testdata()
     fitness, accuracy = create_fitness(data, Val{2}, Val{2},
-                                       depth_penalty = 2.0, size_penalty = 0.5)
+                                       depth_factor = 2.0, depth_baseline = 5,
+                                       size_factor = 0.5, size_baseline = 16)
 
     initializer = RampedSplitSampler{2, 2}(4, 0.5, 0.5, crange = (-2.0, 2.0))
     population, _ = runssgp(fitness, 20, initializer, N, verbose = false)
