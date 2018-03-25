@@ -2,6 +2,10 @@ using DataFrames
 using LearningStrategies
 using SoftComputingFinal
 
+using Plots
+pyplot()
+
+
 const ValType = Type{Val{T}} where T
 const datasets = Dict{String, Tuple{Function, ValType, ValType}}(
     "testdata" => (load_testdata, Val{2}, Val{2}),
@@ -33,8 +37,8 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
         validation_data = view(data, shuffled[val_indices])
         
         fitness, xa = create_fitness(training_data, nvars_t, nclasses_t,
-                                    depth_factor = 0.0,
-                                    size_factor = 0.0)
+                                     depth_factor = 0.0,
+                                     size_factor = 0.0)
         xb, validation_accuracy = create_fitness(validation_data, nvars_t, nclasses_t,
                                                  depth_factor = 0.0,
                                                  size_factor = 0.0)
@@ -53,7 +57,7 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
         end
     end
 
-    results = by(errortraces, :generation) do df
+    return by(errortraces, :generation) do df
         x̄ = mean(df[:error])
         σ̂ = std(df[:error], mean = x̄)
         n = length(df[:error])
@@ -61,19 +65,29 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
                   ci_l = x̄ - 1.96σ̂ / √n,
                   ci_u = x̄ + 1.96σ̂ / √n)
     end
-
-    display(results)
 end
 
 
 function main()
     if length(ARGS) == 2
-        evaluatedataset(ARGS[1], parse(Int, ARGS[2]))
+        dataset, N = ARGS[1], parse(Int, ARGS[2])
     elseif length(ARGS) == 1
-        evaluatedataset(ARGS[1], 1000)
+        dataset, N = ARGS[1], 1000
     else
         error("Usage: $PROGRAM_FILE <dataset> [<generations>]")
     end
+
+    results = evaluatedataset(dataset, N)
+    # display(results)
+    
+    plt = plot(results[:generation], results[:mean],
+               ribbon = (results[:ci_l], results[:ci_u]),
+               fillalpha = 0.2,
+               xlabel = "Generation",
+               ylabel = "Validation accuracy", ylims = (0, 1),
+               title = "Average validation accuracy\n and 95% confidence interval\n over time",
+               legend = :none)
+    png(plt, "$dataset.png")
 end
 
 

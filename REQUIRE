@@ -4,3 +4,4 @@ CSV
 DataFrames 0.11
 CategoricalArrays 0.3
 LearningStrategies 0.2-
+Plots
