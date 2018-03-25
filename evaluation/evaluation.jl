@@ -20,6 +20,7 @@ getsampler(::Type{Val{M}}, ::Type{Val{N}}) where {M, N} =
                              maxvars = min(3, M))
 
 kbest(model, k) = view(model.population, selectperm(model.population_fitnesses, 1:k))
+best(model) = model.population[indmax(model.population_fitnesses)]
 
 
 function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 50)
@@ -36,15 +37,16 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
         training_data = view(data, shuffled[train_indices])
         validation_data = view(data, shuffled[val_indices])
         
-        fitness, xa = create_fitness(training_data, nvars_t, nclasses_t,
+        fitness, _ = create_fitness(training_data, nvars_t, nclasses_t,
                                      depth_factor = 0.0,
                                      size_factor = 0.0)
-        xb, validation_accuracy = create_fitness(validation_data, nvars_t, nclasses_t,
+        _, validation_accuracy = create_fitness(validation_data, nvars_t, nclasses_t,
                                                  depth_factor = 0.0,
                                                  size_factor = 0.0)
 
         for r = 1:repetitions
-            tracer = Tracer(Float64, (m, i) -> mean(validation_accuracy.(kbest(m, pareto_sample))))
+            # tracer = Tracer(Float64, (m, i) -> mean(validation_accuracy.(kbest(m, pareto_sample))))
+            tracer = Tracer(Float64, (m, i) -> validation_accuracy(best(m)))
             initializer = getsampler(nvars_t, nclasses_t)
 
             pop, trace = runssgp(fitness, popsize, initializer, N,
@@ -62,8 +64,8 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
         σ̂ = std(df[:error], mean = x̄)
         n = length(df[:error])
         DataFrame(mean = x̄,
-                  ci_l = x̄ - 1.96σ̂ / √n,
-                  ci_u = x̄ + 1.96σ̂ / √n)
+                  ci_l = -1.96σ̂ / √n,
+                  ci_u = +1.96σ̂ / √n)
     end
 end
 
