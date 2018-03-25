@@ -18,7 +18,7 @@ export
     # Sampling
     SplitSampler, RampedSplitSampler, BoltzmannSampler,
     # Data stuff
-    load_glass, load_ionosphere, load_image_segmentation, load_testdata, create_fitness,
+    load_glass, load_ionosphere, load_segmentation, load_testdata, create_fitness,
     # Genetic programming
     rungp, runssgp
 

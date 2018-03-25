@@ -99,35 +99,35 @@ end
 # Class Distribution: 
 #    Classes:  brickface, sky, foliage, cement, window, path, grass.
 
-function load_image_segmentation()
-    image_segmentation = CSV.read(datafile("image-segmentation.data"),
-                                  header = [:id,
-                                            :region_centroid_col,
-                                            :region_centroid_row,
-                                            :region_pixel_count,
-                                            :short_line_density_5,
-                                            :short_line_density_2,
-                                            :vedge_mean,
-                                            :vedge_sd,
-                                            :hedge_mean,
-                                            :hedge_sd,
-                                            :intensity_mean,
-                                            :rawred_mean,
-                                            :rawblue_mean,
-                                            :rawgreen_mean,
-                                            :exred_mean,
-                                            :exblue_mean,
-                                            :exgreen_mean,
-                                            :value_mean,
-                                            :saturation_mean,
-                                            :hue_mean,
-                                            :image],
-                                  types = Dict(4 => Float64),
-                                  transforms = Dict(21 => lowercase ∘ string))
-    categorical!(image_segmentation, :image)
-    delete!(image_segmentation, :id)
+function load_segmentation()
+    segmentation = CSV.read(datafile("image-segmentation.data"),
+                            header = [:id,
+                                      :region_centroid_col,
+                                      :region_centroid_row,
+                                      :region_pixel_count,
+                                      :short_line_density_5,
+                                      :short_line_density_2,
+                                      :vedge_mean,
+                                      :vedge_sd,
+                                      :hedge_mean,
+                                      :hedge_sd,
+                                      :intensity_mean,
+                                      :rawred_mean,
+                                      :rawblue_mean,
+                                      :rawgreen_mean,
+                                      :exred_mean,
+                                      :exblue_mean,
+                                      :exgreen_mean,
+                                      :value_mean,
+                                      :saturation_mean,
+                                      :hue_mean,
+                                      :image],
+                            types = Dict(4 => Float64),
+                            transforms = Dict(21 => lowercase ∘ string))
+    categorical!(segmentation, :image)
+    delete!(segmentation, :id)
 
-    return image_segmentation
+    return segmentation
 end
 
 
