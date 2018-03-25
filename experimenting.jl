@@ -1,93 +1,37 @@
-# addprocs(4)
-
 # using DataFrames
 using LearningStrategies
-# @everywhere using SoftComputingFinal
 using SoftComputingFinal
 
-function testfitness()
-    glass = load_glass();
-    fitness = create_fitness(glass, Val{9}, Val{7})
-    tree = rand(BoltzmannSampler{9, 7}(10, 20));
-    fitness(tree)
-end
+const ValType = Type{Val{T}} where T
+const datasets = Dict{Symbol, Tuple{Function, ValType, ValType}}(
+    :testdata => (load_testdata, Val{2}, Val{2}),
+    :glass => (load_glass, Val{9}, Val{7}),
+    :ionosphere => (load_ionosphere, Val{34}, Val{2}),
+    :segmentation => (load_segmentation, Val{19}, Val{7}))
 
+getsampler(::Type{Val{M}}, ::Type{Val{N}}) where {M, N} =
+    RampedSplitSampler{M, N}(6, 0.5, 0.5,
+                             crange = (-10.0, 10.0),
+                             maxvars = 3)
 
-function testgp(N)
+function testdataset(name, N)
     popsize = 250
-    
-    data = load_testdata()
-    fitness, accuracy = create_fitness(data, Val{2}, Val{2},
-                                       depth_factor = 2.0, size_factor = 0.5)
 
-    # tracer = Tracer(DecisionTree{2, 2}, (m, i) -> m.population[indmax(m.population_fitnesses)])
-    tracer = Tracer(Float64, (m, i) -> accuracy(m.population[indmax(m.population_fitnesses)]))
-
-    # initializer = BoltzmannSampler{2, 2}(1, 10, (-2.0, 2.0))
-    initializer = RampedSplitSampler{2, 2}(3, 0.5, 0.5, crange = (-2.0, 2.0))
-    pop, trace = runssgp(fitness, popsize, initializer, N, tracer = tracer, verbose = false)
-
-    println(collect(trace))
-    
-    # max_trees = collect(trace)
-    # best_tree = select(max_trees, 1, by = fitness, rev = true)
-    # println(best_tree)
-    # println(accuracy(best_tree))
-    # println(accuracy.(max_trees))
-    # Dict(:pop => pop, :poptrace => max_trees, :accuracytrace => accuracy.(max_trees))
-end
-
-# testgp(100)
-
-function testglass(N)
-    popsize = 250
-    
-    data = load_glass()
-    fitness, accuracy = create_fitness(data, Val{9}, Val{7},
-                                       depth_factor = 0.0, depth_baseline = 10,
-                                       size_factor = 0.0, size_baseline = 100)
-    println("Loaded data, created fitness function")
+    load_data, nvars, nclasses = datasets[name]
+    data = load_data()
+    fitness, accuracy = create_fitness(data, nvars, nclasses,
+                                       depth_factor = 0.0, size_factor = 0.0)
 
     tracer = Tracer(Float64, (m, i) -> accuracy(m.population[indmax(m.population_fitnesses)]))
-    # tracer = Tracer(DecisionTree{9, 7}, (m, i) -> m.population[indmax(m.population_fitnesses)])
-    initializer = RampedSplitSampler{9, 7}(6, 0.5, 0.5,
-                                           crange = (-10.0, 10.0),
-                                           maxvars = 3)
+    initializer = getsampler(nvars, nclasses)
 
     pop, trace = runssgp(fitness, popsize, initializer, N,
                          max_depth = 30,
                          tracer = tracer,
                          verbose = false,
-                         debug = true);
+                         debug = false);
 
     println(collect(trace))
 end
 
-# testglass(1000)
-
-
-function testionosphere(N)
-    popsize = 250
-    
-    data = load_ionosphere()
-    fitness, accuracy = create_fitness(data, Val{34}, Val{2},
-                                       depth_factor = 0.0, depth_baseline = 10,
-                                       size_factor = 0.0, size_baseline = 100)
-    println("Loaded data, created fitness function")
-
-    tracer = Tracer(Float64, (m, i) -> accuracy(m.population[indmax(m.population_fitnesses)]))
-    # tracer = Tracer(DecisionTree{9, 7}, (m, i) -> m.population[indmax(m.population_fitnesses)])
-    initializer = RampedSplitSampler{34, 2}(6, 0.5, 0.5,
-                                           crange = (-10.0, 10.0),
-                                           maxvars = 3)
-
-    pop, trace = runssgp(fitness, popsize, initializer, N,
-                         max_depth = 30,
-                         tracer = tracer,
-                         verbose = false,
-                         debug = true);
-
-    println(collect(trace))
-end
-
-testionosphere(100)
+testdataset(:ionosphere, 100)
