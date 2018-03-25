@@ -18,7 +18,7 @@ function testgp(N)
     
     data = load_testdata()
     fitness, accuracy = create_fitness(data, Val{2}, Val{2},
-                                       depth_penalty = 2.0, size_penalty = 0.5)
+                                       depth_factor = 2.0, size_factor = 0.5)
 
     # tracer = Tracer(DecisionTree{2, 2}, (m, i) -> m.population[indmax(m.population_fitnesses)])
     tracer = Tracer(Float64, (m, i) -> accuracy(m.population[indmax(m.population_fitnesses)]))
@@ -44,24 +44,50 @@ function testglass(N)
     
     data = load_glass()
     fitness, accuracy = create_fitness(data, Val{9}, Val{7},
-                                       depth_penalty = 0.0, size_penalty = 0.0)
+                                       depth_factor = 0.0, depth_baseline = 10,
+                                       size_factor = 0.0, size_baseline = 100)
     println("Loaded data, created fitness function")
 
     tracer = Tracer(Float64, (m, i) -> accuracy(m.population[indmax(m.population_fitnesses)]))
-    # initializer = RampedSplitSampler{9, 7}(12, 0.5, 0.5,
-    #                                        crange = (-10.0, 10.0),
-    #                                        maxvars = 3)
-    initializer = BoltzmannSampler{9, 7}(1, 100,
-                                         crange = (-10.0, 10.0),
-                                         maxvars = 3)
+    # tracer = Tracer(DecisionTree{9, 7}, (m, i) -> m.population[indmax(m.population_fitnesses)])
+    initializer = RampedSplitSampler{9, 7}(6, 0.5, 0.5,
+                                           crange = (-10.0, 10.0),
+                                           maxvars = 3)
 
     pop, trace = runssgp(fitness, popsize, initializer, N,
-                         max_depth = 25,
+                         max_depth = 30,
                          tracer = tracer,
                          verbose = false,
-                         debug = true)
+                         debug = true);
 
     println(collect(trace))
 end
 
-testglass(1000)
+# testglass(1000)
+
+
+function testionosphere(N)
+    popsize = 250
+    
+    data = load_ionosphere()
+    fitness, accuracy = create_fitness(data, Val{34}, Val{2},
+                                       depth_factor = 0.0, depth_baseline = 10,
+                                       size_factor = 0.0, size_baseline = 100)
+    println("Loaded data, created fitness function")
+
+    tracer = Tracer(Float64, (m, i) -> accuracy(m.population[indmax(m.population_fitnesses)]))
+    # tracer = Tracer(DecisionTree{9, 7}, (m, i) -> m.population[indmax(m.population_fitnesses)])
+    initializer = RampedSplitSampler{34, 2}(6, 0.5, 0.5,
+                                           crange = (-10.0, 10.0),
+                                           maxvars = 3)
+
+    pop, trace = runssgp(fitness, popsize, initializer, N,
+                         max_depth = 30,
+                         tracer = tracer,
+                         verbose = false,
+                         debug = true);
+
+    println(collect(trace))
+end
+
+testionosphere(100)
