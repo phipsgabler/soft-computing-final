@@ -14,7 +14,7 @@ getsampler(::Type{Val{M}}, ::Type{Val{N}}) where {M, N} =
                              crange = (-10.0, 10.0),
                              maxvars = min(3, M))
 
-function testdataset(name, N)
+function evaluatedataset(name, N)
     popsize = 250
 
     load_data, nvars, nclasses = datasets[name]
@@ -37,9 +37,9 @@ end
 
 function main()
     if length(ARGS) == 2
-        testdataset(ARGS[1], ARGS[2])
+        evaluatedataset(ARGS[1], parse(Int, ARGS[2]))
     elseif length(ARGS) == 1
-        testdataset(ARGS[1], 1000)
+        evaluatedataset(ARGS[1], 1000)
     else
         error("Usage: $PROGRAM_FILE <dataset> [<generations>]")
     end
