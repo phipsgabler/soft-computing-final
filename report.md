@@ -13,6 +13,10 @@
   for generating the population or the mutation subtrees.  I therefore tried to choose a
   reasonable default.
 - Implementation of the fitness function:
+```
+penalty = size_factor * treesize(tree) + depth_factor * treedepth(tree)
+fitness = correct - penalty
+```
 - Implementation of genetic operators:
     * The paper states that a "steady-state GA with elitism" had been used.
       I used steady-state, ie., only one individual per generation is changed
