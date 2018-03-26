@@ -30,25 +30,32 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
 
     load_data, nvars_t, nclasses_t = datasets[name]
     data = load_data()
-    D = size(data)[1]
-    shuffled = randperm(D)
     accuracies = DataFrame(generation = Int[],
                            accuracy = Float64[])
     sizes = DataFrame(size = Int[], fold = Int[], run = Int[])
 
-    p = Progress(folds * repetitions, desc = "Runs: ")
-    f = 1
+    D = size(data)[1]
+    shuffled = randperm(D)
+    train_indices, val_indices = kfolds(D, folds)
     
-    for (train_indices, val_indices) in zip(kfolds(D, folds)...)
-        training_data = view(data, shuffled[train_indices])
-        validation_data = view(data, shuffled[val_indices])
+    rngs = randjump(Base.GLOBAL_RNG, folds) # we need one rng per thread!
+    update_lock = Threads.SpinLock()
+    function locked(block)
+        lock(update_lock)
+        block()
+        unlock(update_lock)
+    end
+    
+    Threads.@threads for f = 1:folds
+        training_data = view(data, shuffled[train_indices[f]])
+        validation_data = view(data, shuffled[val_indices[f]])
         
         fitness, _ = create_fitness(training_data, nvars_t, nclasses_t,
-                                     depth_factor = 0.0,
-                                     size_factor = 0.5)
+                                    depth_factor = 0.0,
+                                    size_factor = 0.5)
         _, validation_accuracy = create_fitness(validation_data, nvars_t, nclasses_t,
-                                                 depth_factor = 0.0,
-                                                 size_factor = 0.5)
+                                                depth_factor = 0.0,
+                                                size_factor = 0.5)
 
         for r = 1:repetitions
             tracer = Tracer(Float64, (m, i) -> validation_accuracy(best(m)))
@@ -57,20 +64,18 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
             pop, trace = runssgp(fitness, popsize, initializer, N,
                                  max_depth = 30,
                                  tracer = tracer,
+                                 debug = false,
                                  verbose = false,
-                                 debug = false)
-
-            append!(accuracies, DataFrame(generation = 1:N, accuracy = collect(trace)))
-            append!(sizes, DataFrame(size = treesize.(pop), fold = f, run = r))
-
-            next!(p, showvalues = [(:fold, f)]) # update progress bar
+                                 rng = rngs[f])
+            
+            locked() do
+                append!(accuracies, DataFrame(generation = 1:N, accuracy = collect(trace)))
+            end
+            locked() do
+                append!(sizes, DataFrame(size = treesize.(pop), fold = f, run = r))
+            end
         end
-        
-        f += 1
     end
-
-    finish!(p)
-    #println(STDERR) # newline after progress bar
 
     mean_accuracies = by(accuracies, :generation) do df
         x̄ = mean(df[:accuracy])
