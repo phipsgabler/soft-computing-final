@@ -2,7 +2,6 @@ using DataFrames
 using CSV
 using LearningStrategies: Tracer
 using SoftComputingFinal
-using ProgressMeter
 
 using Plots
 pyplot()
@@ -38,7 +37,7 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
     shuffled = randperm(D)
     train_indices, val_indices = kfolds(D, folds)
     
-    rngs = randjump(Base.GLOBAL_RNG, folds) # we need one rng per thread!
+    rngs = randjump(Base.GLOBAL_RNG, Threads.nthreads()) # we need one rng per thread!
     update_lock = Threads.SpinLock()
     function locked(block)
         lock(update_lock)
@@ -66,7 +65,7 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
                                  tracer = tracer,
                                  debug = false,
                                  verbose = false,
-                                 rng = rngs[f])
+                                 rng = rngs[Threads.threadid()])
             
             locked() do
                 append!(accuracies, DataFrame(generation = 1:N, accuracy = collect(trace)))
