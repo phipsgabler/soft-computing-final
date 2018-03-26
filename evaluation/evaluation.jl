@@ -31,8 +31,8 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
     data = load_data()
     D = size(data)[1]
     shuffled = randperm(D)
-    errortraces = DataFrame(generation = Int[],
-                            error = Float64[])
+    accuracies = DataFrame(generation = Int[],
+                           accuracy = Float64[])
 
     p = Progress(folds * repetitions, desc = "Runs: ")
 
@@ -58,19 +58,19 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
                                  verbose = false,
                                  debug = false)
 
-            append!(errortraces, DataFrame(generation = 1:N, error = collect(trace)))
+            append!(accuracies, DataFrame(generation = 1:N, accuracy = collect(trace)))
 
             update!(p, repetitions * (i - 1) + r)
         end
     end
+    
+    println(STDERR) # newline after progress bar
 
-    return by(errortraces, :generation) do df
-        x̄ = mean(df[:error])
-        σ̂ = std(df[:error], mean = x̄)
-        n = length(df[:error])
-        DataFrame(mean = x̄,
-                  ci_l = -1.96σ̂ / √n,
-                  ci_u = +1.96σ̂ / √n)
+    return by(accuracies, :generation) do df
+        x̄ = mean(df[:accuracy])
+        σ̂ = std(df[:accuracy], mean = x̄)
+        n = length(df[:accuracy])
+        DataFrame(mean = x̄, ci = 1.96σ̂ / √n)
     end
 end
 
@@ -87,8 +87,7 @@ function main()
     results = evaluatedataset(dataset, N)
     # display(results)
     
-    plt = plot(results[:generation], results[:mean],
-               ribbon = (results[:ci_l], results[:ci_u]),
+    plt = plot(results[:generation], results[:mean], ribbon = results[:ci],
                fillalpha = 0.2,
                xlabel = "Generation",
                ylabel = "Validation accuracy", ylims = (0, 1),
