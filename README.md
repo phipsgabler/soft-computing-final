@@ -5,6 +5,10 @@ Computing](https://korppi.jyu.fi/kotka/course/student/courseInfo.jsp?course=2162
 project consists of replicating the paper "Application of genetic programming to induction of linear
 classification trees" (Bot and Langdon, 2000).
 
+## Results
+
+For implementation notes and summary of the results, see [here](report.md).
+
 ## Data
 
 The `data` folder contains the following three data sets from the UCI Machine Learning Repository,
@@ -32,6 +36,8 @@ original description in (Montana, 1995)), I translated Brent Yorgey's [size-limi
 Boltzmann
 sampler](https://byorgey.wordpress.com/2013/04/25/random-binary-trees-with-a-size-limited-critical-boltzmann-sampler-2/),
 which allows to efficiently generate random trees in a given size range.
+
+This sampler has not been used for reproduction of the results, though.
 
 ## References
 
