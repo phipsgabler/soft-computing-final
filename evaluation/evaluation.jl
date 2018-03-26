@@ -51,10 +51,10 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
         
         fitness, _ = create_fitness(training_data, nvars_t, nclasses_t,
                                     depth_factor = 0.0,
-                                    size_factor = 0.5)
+                                    size_factor = 0.0)
         _, validation_accuracy = create_fitness(validation_data, nvars_t, nclasses_t,
                                                 depth_factor = 0.0,
-                                                size_factor = 0.5)
+                                                size_factor = 0.0)
 
         for r = 1:repetitions
             tracer = Tracer(Float64, (m, i) -> validation_accuracy(best(m)))
