@@ -1,6 +1,7 @@
 using DataFrames
-using LearningStrategies
+using LearningStrategies: Tracer
 using SoftComputingFinal
+using ProgressMeter
 
 using Plots
 pyplot()
@@ -31,9 +32,11 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
     D = size(data)[1]
     shuffled = randperm(D)
     errortraces = DataFrame(generation = Int[],
-                           error = Float64[])
+                            error = Float64[])
 
-    for (train_indices, val_indices) in kfolds(D, folds)
+    p = Progress(folds * repetitions, desc = "Runs: ")
+
+    for (i, (train_indices, val_indices)) in enumerate(kfolds(D, folds))
         training_data = view(data, shuffled[train_indices])
         validation_data = view(data, shuffled[val_indices])
         
@@ -56,6 +59,8 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
                                  debug = false)
 
             append!(errortraces, DataFrame(generation = 1:N, error = collect(trace)))
+
+            update!(p, repetitions * (i - 1) + r)
         end
     end
 
