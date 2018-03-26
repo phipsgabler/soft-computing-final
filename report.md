@@ -1,4 +1,16 @@
-## Choices made
+# Results
+
+## Implementation details
+
+The evaluation data and images below can be reproduced using the script [evaluation.jl](./evaluation/evaluation.jl) as follows:
+
+```
+> export JULIA_NUM_THREADS=4; julia evaluation.jl <dataname>
+```
+
+This produces two figures, `<dataname>-accuracies.png` and `<dataname>-sizes.png`, and CSVs for the respective raw data.  (The first part just sets the number of theads to be used; of course, it can be left out or changed.)
+
+Since not everything was clear or uniquely defined, I made the following choices:
 
 - Representation of trees: the paper in its description stays close to the "strongly typed
   GP" formalism of Montana (1995).  I interpreted this more loosely and represented trees as types
@@ -12,15 +24,18 @@
   Furthermore, the paper didn't specify the maximum depths or sizes used
   for generating the population or the mutation subtrees.  I therefore tried to choose a
   reasonable default.
-- Implementation of the fitness function:
-```
-penalty = size_factor * treesize(tree) + depth_factor * treedepth(tree)
-fitness = correct - penalty
-```
+- Implementation of the fitness function: this was rather difficult, since it influences the result a lot. 
+  I settled for the following calculation:
+  ```
+  penalty = size_factor * treesize(tree) + depth_factor * treedepth(tree)
+  fitness = correct - penalty
+  ```
+  For the factors, as shown below, I tried three different variants: both zero, 0.5 for size, and 2.0 for depth.
 - Implementation of genetic operators:
-    * The paper states that a "steady-state GA with elitism" had been used.
-      I used steady-state, ie., only one individual per generation is changed
-      and always replaced the individual with the least fitness.
+    * The paper states that a "steady-state GA with elitism" had been used.  I couldn't really interpret what
+      elitism signifies in this definition.  My interpretation of steady-state is to use only one population and in each
+      generation, instead of generating a whole new population based on the old one, replace `popsize` times the currently 
+      worst individual by an offspring (this shoud be better understandable through reading [the code](./src/gp.jl#L114)).
     * Crossover and mutation both happen with probability 0.5.  Since crossover
       only returns one individual, a random parent is chosen in the case no actual 
       mating happens.
@@ -30,3 +45,27 @@ fitness = correct - penalty
 
 ## Outcome
 
+The figures below (and the respective CSV data files) show 
+- the average accuracy of the best individual over ten-fold crossvalidation, with 3 runs each time (ie. n = 30), and
+- the size distribution of the resulting generation of all runs.
+
+### Glass dataset
+
+#### Without penalties:
+
+![Accuracy trace without penalties](evaluation/0.0-glass-accuracies.png)
+
+![Size distribution without penalties](evaluation/0.0-glass-sizes.png)
+
+#### With size penalty factor 0.5:
+
+![Glass accuracy trace with size penalty 0.5](evaluation/0.5-glass-accuracies.png)
+  
+![Glass accuracy trace with size penalty 0.5](evaluation/0.5-glass-sizes.png)
+  
+#### With depth penalty factor 2.0:
+
+![Glass accuracy trace size penalty 2.0](evaluation/2.0-glass-accuracies.png)
+  
+![Glass accuracy trace size penalty 2.0](evaluation/2.0-glass-sizes.png)
+  
