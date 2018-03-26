@@ -35,8 +35,9 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
                            accuracy = Float64[])
 
     p = Progress(folds * repetitions, desc = "Runs: ")
-
-    for (i, (train_indices, val_indices)) in enumerate(kfolds(D, folds))
+    f = 1
+    
+    for (train_indices, val_indices) in zip(kfolds(D, folds)...)
         training_data = view(data, shuffled[train_indices])
         validation_data = view(data, shuffled[val_indices])
         
@@ -48,7 +49,6 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
                                                  size_factor = 0.0)
 
         for r = 1:repetitions
-            # tracer = Tracer(Float64, (m, i) -> mean(validation_accuracy.(kbest(m, pareto_sample))))
             tracer = Tracer(Float64, (m, i) -> validation_accuracy(best(m)))
             initializer = getsampler(nvars_t, nclasses_t)
 
@@ -60,11 +60,14 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
 
             append!(accuracies, DataFrame(generation = 1:N, accuracy = collect(trace)))
 
-            update!(p, repetitions * (i - 1) + r)
+            next!(p, showvalues = [(:fold, f)]) # update progress bar
         end
+        
+        f += 1
     end
-    
-    println(STDERR) # newline after progress bar
+
+    finish!(p)
+    #println(STDERR) # newline after progress bar
 
     return by(accuracies, :generation) do df
         x̄ = mean(df[:accuracy])
