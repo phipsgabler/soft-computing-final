@@ -1,4 +1,5 @@
 using DataFrames
+using CSV
 using LearningStrategies: Tracer
 using SoftComputingFinal
 using ProgressMeter
@@ -33,6 +34,7 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
     shuffled = randperm(D)
     accuracies = DataFrame(generation = Int[],
                            accuracy = Float64[])
+    sizes = DataFrame(size = Int[], fold = Int[], run = Int[])
 
     p = Progress(folds * repetitions, desc = "Runs: ")
     f = 1
@@ -43,10 +45,10 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
         
         fitness, _ = create_fitness(training_data, nvars_t, nclasses_t,
                                      depth_factor = 0.0,
-                                     size_factor = 0.0)
+                                     size_factor = 0.5)
         _, validation_accuracy = create_fitness(validation_data, nvars_t, nclasses_t,
                                                  depth_factor = 0.0,
-                                                 size_factor = 0.0)
+                                                 size_factor = 0.5)
 
         for r = 1:repetitions
             tracer = Tracer(Float64, (m, i) -> validation_accuracy(best(m)))
@@ -59,6 +61,7 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
                                  debug = false)
 
             append!(accuracies, DataFrame(generation = 1:N, accuracy = collect(trace)))
+            append!(sizes, DataFrame(size = treesize.(pop), fold = f, run = r))
 
             next!(p, showvalues = [(:fold, f)]) # update progress bar
         end
@@ -69,12 +72,14 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
     finish!(p)
     #println(STDERR) # newline after progress bar
 
-    return by(accuracies, :generation) do df
+    mean_accuracies = by(accuracies, :generation) do df
         x̄ = mean(df[:accuracy])
         σ̂ = std(df[:accuracy], mean = x̄)
         n = length(df[:accuracy])
         DataFrame(mean = x̄, ci = 1.96σ̂ / √n)
     end
+
+    return mean_accuracies, sizes
 end
 
 
@@ -87,16 +92,26 @@ function main()
         error("Usage: $PROGRAM_FILE <dataset> [<generations>]")
     end
 
-    results = evaluatedataset(dataset, N)
-    # display(results)
+    mean_accuracies, sizes = evaluatedataset(dataset, N)
+    # display(mean_accuracies)
     
-    plt = plot(results[:generation], results[:mean], ribbon = results[:ci],
-               fillalpha = 0.2,
-               xlabel = "Generation",
-               ylabel = "Validation accuracy", ylims = (0, 1),
-               title = "Average validation accuracy\n and 95% confidence interval\n over time",
-               legend = :none)
-    png(plt, "$dataset.png")
+    plt_acc = plot(mean_accuracies[:generation], mean_accuracies[:mean],
+                   ribbon = mean_accuracies[:ci],
+                   fillalpha = 0.2,
+                   xlabel = "Generation",
+                   ylabel = "Validation accuracy", ylims = (0, 1),
+                   title = "Average validation accuracy\n and 95% confidence interval\n over time",
+                   legend = :none)
+    png(plt_acc, "$dataset-accuracies.png")
+
+    plt_sizes = histogram(sizes[:size], normalize = true,
+                          xlabel = "Size", ylabel = "Frequency",
+                          title = "Size distribution in last generation",
+                          legend = :none)
+    png(plt_sizes, "$dataset-sizes.png")
+
+    CSV.write("$dataset-accuracies.csv", mean_accuracies)
+    CSV.write("$dataset-sizes.csv", sizes)
 end
 
 
