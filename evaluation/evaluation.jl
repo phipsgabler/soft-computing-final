@@ -50,10 +50,10 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
         validation_data = view(data, shuffled[val_indices[f]])
         
         fitness, _ = create_fitness(training_data, nvars_t, nclasses_t,
-                                    depth_factor = 0.0,
+                                    depth_factor = 2.0,
                                     size_factor = 0.0)
         _, validation_accuracy = create_fitness(validation_data, nvars_t, nclasses_t,
-                                                depth_factor = 0.0,
+                                                depth_factor = 2.0,
                                                 size_factor = 0.0)
 
         for r = 1:repetitions
@@ -63,7 +63,6 @@ function evaluatedataset(name, N; folds = 10, repetitions = 3, pareto_sample = 5
             pop, trace = runssgp(fitness, popsize, initializer, N,
                                  max_depth = 30,
                                  tracer = tracer,
-                                 debug = false,
                                  verbose = false,
                                  rng = rngs[Threads.threadid()])
             

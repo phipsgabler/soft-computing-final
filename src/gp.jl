@@ -117,7 +117,7 @@ function update!(model::SSGPModel, s::GPModelSolver)
     fitness = model.fitness
 
     for _ = eachindex(population)
-    # breed
+        # breed
         p₁ = selection(population, fitnesses, s)
         p₂ = selection(population, fitnesses, s)
         child = crossover(p₁, p₂, s)
@@ -157,9 +157,9 @@ function runssgp{N, C}(fitness, psize::Int, sampler::TreeSampler{N, C}, maxiter:
                        tournament_size = 7,
                        mutation_rate = 0.5, crossover_rate = 0.5,
                        depth_penalty = 2.0, size_penalty = 0.5,
-                       rng = Base.GLOBAL_RNG, verbose = true, debug = false)
+                       rng = Base.GLOBAL_RNG,
+                       verbose = true)
     initial_population = rand(rng, sampler, psize)
-    debug && println("Initialized population")
     model = SSGPModel(float ∘ fitness, initial_population)
     solver = GPModelSolver(min_depth, max_depth, tournament_size, crossover_rate, mutation_rate,
                            sampler, rng)
