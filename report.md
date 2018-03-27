@@ -42,6 +42,8 @@ Since not everything was clear or uniquely defined, I made the following choices
     * Selection is stated to use tournament selection of size 7.  I therefore choose
       7 random individuals with replacement and return the best of those.
 
+The implementation, while not very optimized, runs in reasonable time, with about 15 minutes for one evaluation (ie., 30 runs with 1000 generations), when using 4 threads.
+
 
 ## Outcome
 
@@ -55,6 +57,8 @@ distribution of the results, when using nonzero penalties, keep, except for very
 
 The ionosphere dataset in both cases performs much better than the others.  I strongly assume that this is due to the fact 
 that it is a binary classification problem, as opposed to the 7 classes in both other data sets.
+
+For the segmentation dataset, in the non-penalized case, we can also observe the seemingly non-converged behaviour noted by the authors.
 
 ### Glass dataset
 
@@ -95,4 +99,24 @@ that it is a binary classification problem, as opposed to the 7 classes in both 
 ![Accuracy trace size penalty 2.0](evaluation/2.0-ionosphere-accuracies.png)
   
 ![Size distribution size penalty 2.0](evaluation/2.0-ionosphere-sizes.png)
+
+### Segmentation dataset
+
+#### Without penalties:
+
+![Accuracy trace without penalties](evaluation/0.0-segmentation-accuracies.png)
+
+![Size distribution without penalties](evaluation/0.0-segmentation-sizes.png)
+
+#### With size penalty factor 0.5:
+
+![Accuracy trace with size penalty 0.5](evaluation/0.5-segmentation-accuracies.png)
+  
+![Size distribution with size penalty 0.5](evaluation/0.5-segmentation-sizes.png)
+  
+#### With depth penalty factor 2.0:
+
+![Accuracy trace size penalty 2.0](evaluation/2.0-segmentation-accuracies.png)
+  
+![Size distribution size penalty 2.0](evaluation/2.0-segmentation-sizes.png)
   
