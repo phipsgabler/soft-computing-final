@@ -59,13 +59,33 @@ The figures below (and the respective CSV data files) show
 
 #### With size penalty factor 0.5:
 
-![Glass accuracy trace with size penalty 0.5](evaluation/0.5-glass-accuracies.png)
+![Accuracy trace with size penalty 0.5](evaluation/0.5-glass-accuracies.png)
   
-![Glass accuracy trace with size penalty 0.5](evaluation/0.5-glass-sizes.png)
+![Size distribution with size penalty 0.5](evaluation/0.5-glass-sizes.png)
   
 #### With depth penalty factor 2.0:
 
-![Glass accuracy trace size penalty 2.0](evaluation/2.0-glass-accuracies.png)
+![Accuracy trace size penalty 2.0](evaluation/2.0-glass-accuracies.png)
   
-![Glass accuracy trace size penalty 2.0](evaluation/2.0-glass-sizes.png)
+![Size distribution size penalty 2.0](evaluation/2.0-glass-sizes.png)
+
+### Ionosphere dataset
+
+#### Without penalties:
+
+![Accuracy trace without penalties](evaluation/0.0-ionosphere-accuracies.png)
+
+![Size distribution without penalties](evaluation/0.0-ionosphere-sizes.png)
+
+#### With size penalty factor 0.5:
+
+![Accuracy trace with size penalty 0.5](evaluation/0.5-ionosphere-accuracies.png)
+  
+![Size distribution with size penalty 0.5](evaluation/0.5-ionosphere-sizes.png)
+  
+#### With depth penalty factor 2.0:
+
+![Accuracy trace size penalty 2.0](evaluation/2.0-ionosphere-accuracies.png)
+  
+![Size distribution size penalty 2.0](evaluation/2.0-ionosphere-sizes.png)
   
