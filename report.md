@@ -49,6 +49,13 @@ The figures below (and the respective CSV data files) show
 - the average accuracy of the best individual over ten-fold crossvalidation, with 3 runs each time (ie. n = 30), and
 - the size distribution of the resulting generation of all runs.
 
+In general, we can see that the replicated test accuracies are 5 to 10 % below the ones stated in the paper, and look 
+relatively consistent.  Also, the variation of penalties seems not to change much, as the authors observe, too.  The size 
+distribution of the results, when using nonzero penalties, keep, except for very few outliers, within a reasonable small range, similar to the averages in the paper.
+
+The ionosphere dataset in both cases performs much better than the others.  I strongly assume that this is due to the fact 
+that it is a binary classification problem, as opposed to the 7 classes in both other data sets.
+
 ### Glass dataset
 
 #### Without penalties:
